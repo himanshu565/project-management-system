@@ -1,4 +1,4 @@
-import { string } from "astro:schema";
+
 import bcrypt from "bcryptjs";
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
@@ -7,8 +7,8 @@ const userSchema = new Schema(
   {
     avatar: {
       type: {
-        url: string,
-        localPath: string,
+        url: String,
+        localPath: String,
       },
       default: {
         url: "https://placehold.co/200x200/EEE/31343C",
@@ -16,7 +16,7 @@ const userSchema = new Schema(
       },
     },
     username: {
-      type: string,
+      type: String,
       required: true,
       unique: true,
       lowercase: true,
@@ -24,21 +24,21 @@ const userSchema = new Schema(
       index: true,
     },
     email: {
-      type: string,
+      type: String,
       required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
     password: {
-      type: string,
+      type: String,
       required: [true, "password is required"],
       unique: true,
       lowercase: true,
       trim: true,
     },
     fullName: {
-      type: string,
+      type: String,
       trim: true,
     },
     isEmailVerified: {
@@ -46,16 +46,16 @@ const userSchema = new Schema(
       default: false,
     },
     refreshToken: {
-      type: string,
+      type: String,
     },
     forgotPasswordToken: {
-      type: string,
+      type: String,
     },
     forgotPasswordExpiry: {
       type: Date,
     },
     emailVerificationToken: {
-      type: string,
+      type: String,
     },
     emailVerificationExpiry: {
       type: Date,
@@ -97,17 +97,15 @@ userSchema.methods.generateRefreshToken = function () {
   );
 };
 userSchema.methods.generateTemporaryToken = function () {
-  const unHashedToken  = crypto.randomBytes(20).toString("hex");
+  const unHashedToken = crypto.randomBytes(20).toString("hex");
 
   const hashedToken = crypto
-  .createHash("sha256")   //inside the createhash we write our algo for hashing we wanna use 
-  .update(unHashedToken)
-  .digest("hex")
+    .createHash("sha256") //inside the createhash we write our algo for hashing we wanna use
+    .update(unHashedToken)
+    .digest("hex");
 
-  const tokenExpiry = Date.now() + (20*60*1000) //20 minutes
-  return {unHashedToken ,hashedToken ,tokenExpiry}
-
-
+  const tokenExpiry = Date.now() + 20 * 60 * 1000; //20 minutes
+  return { unHashedToken, hashedToken, tokenExpiry };
 };
 
 export const User = mongoose.model("User", userSchema);
