@@ -1,7 +1,7 @@
 import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { asyncHandler } from "../utils/async-handler.js";
-import { ApiError } from "next/dist/server/api-utils/index.js";
+import { ApiError } from "../utils/api-error.js";
 import { EmailverificationMailgenCContent, sendEmail } from "../utils/mail.js";
 
 const generateAcessTokenandrefreshTokens = async (userId) => {
@@ -66,4 +66,51 @@ const registerUser = asyncHandler(async (req, res) => {
       )
     );
 });
-export { registerUser };
+
+const login = asyncHandler(async (req, res) => {
+  const { email, password, username } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "email is required ");
+  }
+  const user = User.findOne({ email });
+
+  if (!username) {
+    throw new ApiError(400, "username does not exists");
+  }
+
+  const isPasswordValid = await user.isPasswordValid(password);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "invald credentials");
+  }
+  const { refreshtoken, accessToken } =
+    await generateAcessTokenandrefreshTokens(user._id);
+
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+  );
+  //cookies require optons
+  const options = {
+    httponly: true,
+    secure: true,
+  };
+  //now options are ready now send the response
+  return res
+  .status(200)
+  .cookie("accessToken",accessToken)
+  .cookie("refreshToken",refreshtoken)
+  .json(
+    new ApiResponse(
+      200,
+      {
+         user: loggedInUser,
+         accessToken,
+         refreshtoken
+      },
+      "user is logged in succesfully"
+    )
+  )
+
+  ;
+});
+export {login, registerUser };

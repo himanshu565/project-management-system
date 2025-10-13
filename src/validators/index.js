@@ -35,3 +35,4 @@ const userRegisterValidator = () =>{
 
     ]
 }
+export {userRegisterValidator};
