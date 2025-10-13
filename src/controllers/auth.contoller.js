@@ -6,10 +6,11 @@ import { EmailverificationMailgenCContent, sendEmail } from "../utils/mail.js";
 
 const generateAcessTokenandrefreshTokens = async (userId) => {
   try {
-    const user = User.findById(userId);
+    const user = await User.findById(userId);
     const refreshtoken = user.generateRefreshToken();
     const accessToken = user.generateAccessToken();
-    user.refreshtoken = refreshtoken;
+
+    user.refreshToken = refreshtoken;
     await user.save({ validateBeforeSave: false });
     //this save method is used to save the user without validating the other fields and it also generates the refresh token in the db
     return { accessToken, refreshtoken };
@@ -73,15 +74,15 @@ const login = asyncHandler(async (req, res) => {
   if (!email) {
     throw new ApiError(400, "email is required ");
   }
-  const user = User.findOne({ email });
 
-  if (!username) {
-    throw new ApiError(400, "username does not exists");
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(400, "user does not exists");
   }
 
-  const isPasswordValid = await user.isPasswordValid(password);
+  const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) {
-    throw new ApiError(400, "invald credentials");
+    throw new ApiError(400, "invalid credentials");
   }
   const { refreshtoken, accessToken } =
     await generateAcessTokenandrefreshTokens(user._id);
@@ -89,28 +90,26 @@ const login = asyncHandler(async (req, res) => {
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
   );
-  //cookies require optons
+  //cookies require options
   const options = {
     httponly: true,
     secure: true,
   };
   //now options are ready now send the response
   return res
-  .status(200)
-  .cookie("accessToken",accessToken)
-  .cookie("refreshToken",refreshtoken)
-  .json(
-    new ApiResponse(
-      200,
-      {
-         user: loggedInUser,
-         accessToken,
-         refreshtoken
-      },
-      "user is logged in succesfully"
-    )
-  )
-
-  ;
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshtoken, options)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshtoken,
+        },
+        "user is logged in successfully"
+      )
+    );
 });
-export {login, registerUser };
+export { login, registerUser };

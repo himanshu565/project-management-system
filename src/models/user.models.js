@@ -1,5 +1,4 @@
-
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -33,9 +32,6 @@ const userSchema = new Schema(
     password: {
       type: String,
       required: [true, "password is required"],
-      unique: true,
-      lowercase: true,
-      trim: true,
     },
     fullName: {
       type: String,
@@ -51,6 +47,7 @@ const userSchema = new Schema(
     forgotPasswordToken: {
       type: String,
     },
+
     forgotPasswordExpiry: {
       type: Date,
     },

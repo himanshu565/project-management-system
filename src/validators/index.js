@@ -1,38 +1,42 @@
+import { body } from "express-validator";
 
-import { body } from "express-validator"
+const userRegisterValidator = () => {
+  return [
+    body("email")
+      .trim()
+      .notEmpty()
+      .withMessage("email is requred")
+      .isEmail()
+      .withMessage("Email is not valid"),
 
+    body("username")
+      .trim()
+      .notEmpty()
+      .withMessage("username is required")
+      .isLowercase()
+      .withMessage("username must be in lowercase")
+      .isLength({ min: 3 })
+      .withMessage("username must be of atleast 3 character long "),
 
-const userRegisterValidator = () =>{
-    return [
+    body("password").trim().notEmpty().withMessage("password cannot be empty"),
 
-        body("email")
-        .trim()
-        .isEmpty()
-        .withMessage("email is requred")
-        .isEmail()
-        .withMessage("Email is not valid"),
+    body("fullname").trim().optional(),
+  ];
+};
 
-        body("username")
-        .trim()
-        .isEmpty()
-        .withMessage("username is required")
-        .isLowercase()
-        .withMessage("username must be in lowercase")
-        .isLength({min:3})
-        .withMessage("username must be of atleast 3 character long "),
+const userLoginValidator = () => {
+  return [
+    body("email").trim().optional().isEmail().withMessage("email is not valid"),
+    body("password").trim().notEmpty().withMessage("password cannot be empty"),
+    body("username")
+      .trim()
+      .notEmpty()
+      .withMessage("username is required")
+      .isLowercase()
+      .withMessage("username must be in lowercase")
+      .isLength({ min: 3 })
+      .withMessage("username must be of atleast 3 character long "),
+  ];
+};
 
-        body("password")
-        .trim()
-        .isEmpty()
-        .withMessage("password cannot be empty"),
-
-        body("fullname")
-        .trim()
-        .optional()
-        
-        
-
-
-    ]
-}
-export {userRegisterValidator};
+export { userRegisterValidator, userLoginValidator };
