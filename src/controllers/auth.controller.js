@@ -250,6 +250,84 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(400, " invalid refresh token ");
   }
 });
+
+const forgotPasswordRequest = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, "user does not exists", []);
+  }
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken();
+  user.emailVerificationToken = hashedToken;
+  user.emailVerificationExpiry = tokenExpiry;
+  await user.save({ validateBeforeSave: false });
+
+  await sendEmail({
+    to: user?.email,
+    subject: "reset your password",
+    mailgencontent: ForgotPasswordMailgenContent(
+      user.username,
+      `${process.env.FORGOT_PASSWORD_REDIRECT_URL}/${unHashedToken}` // here we can use this or can create our won url just like we didi in register user
+    ),
+  });
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        "password reset email has been sent to your email"
+      )
+    );
+});
+
+const resetForgotPassword = asyncHandler(async (req, res) => {
+  const { resetToken } = req.params;
+  const { newPassword } = req.body;
+
+  // we had unhashed token thats why we need to hash it
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  const user = await User.findOne({
+    forgotPasswordToken: hashedToken,
+    forgotPasswordExpiry: { $gt: Date.now() },
+  });
+  if (!user) {
+    throw new ApiError(400, "invalid or expired password reset token");
+  }
+
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordExpiry = undefined;
+
+  user.password = newPassword; // as soon as i am touching my password my prehook will  be invoked and password will be hashed
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "password has been reset successfully"));
+});
+
+// this change password is for the user that is already logged in .
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(req.user?._id);
+
+  const isPasswordValid = await user.isPasswordCorrect(oldPassword);
+
+  if (!isPasswordValid) {
+    throw new ApiError(400, "old password is invalid");
+  }
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed succesfully"));
+});
 export {
   login,
   registerUser,
@@ -258,4 +336,7 @@ export {
   verifyEmail,
   resendEmailVerification,
   refreshAccessToken,
+  forgotPasswordRequest,
+  changeCurrentPassword,
+  resetForgotPassword,
 };
