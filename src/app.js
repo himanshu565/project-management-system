@@ -14,7 +14,7 @@ app.use(cookieParser());
 // cors configurations
 app.use(
   CORS({
-    origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:5173", //5173 is for vite dev server
+    origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000", //5173 is for vite dev server
     methods: ["GET ", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["content-type", "Authorization"],
