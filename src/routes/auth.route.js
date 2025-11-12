@@ -36,7 +36,7 @@ router
 
 //secure route
 router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/current-user").post(verifyJWT, getCurrentUser);
+router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/change-password").post(verifyJWT,userChangeCurrentPasswordValidator(),validate,changeCurrentPassword);
 router.route("/resend-email-verification").post(verifyJWT, resendEmailVerification);
 
