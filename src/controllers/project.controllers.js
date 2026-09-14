@@ -231,7 +231,7 @@ const addMembersToProject = asyncHandler(async (req, res) => {
   await ProjectMember.findByIdAndUpdate(
     {
       user: new mongoose.Types.ObjectId(user._id),
-      project: new mongoose.Types.ObjectId(projectId),
+      project: new mongoose.Types.ObjectId(projectId),  
     },
     {
       user: new mongoose.Types.ObjectId(user._id),
@@ -254,7 +254,7 @@ const getProjectMembers = asyncHandler(async (req, res) => {
   // TODO: Bug: `findById` should be called with `projectId`, not `req.params`.
   // Fix: `const project = await Project.findById(projectId);`
   // Also: enforce that the requester has permission to view members (authorization).
-  const project = await Project.findById(req.params);
+  const project = await Project.findById(projectId);
 
   if (!project) {
     throw new ApiError(404, "Project not found");
