@@ -1,6 +1,9 @@
 import express from "express";
 import CORS from "cors";
 import cookieParser from "cookie-parser";
+import errHandler from "./middlewares/errorHandler.js";
+import { ApiError } from "./utils/api-error.js";
+import ApiResponse from "./utils/Api-Response.js";
 const app = express();
 
 
@@ -15,7 +18,7 @@ app.use(cookieParser());
 app.use(
   CORS({
     origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000", //5173 is for vite dev server            2
-    methods: ["GET ", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["content-type", "Authorization"],
   })

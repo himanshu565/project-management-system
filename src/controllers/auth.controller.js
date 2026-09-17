@@ -5,7 +5,10 @@ import { ApiError } from "../utils/api-error.js";
 import { EmailverificationMailgenCContent, sendEmail } from "../utils/mail.js";
 import jwt from "jsonwebtoken";
 import { json } from "express";
-
+import{ EmailverificationMailgenCContent,
+  ForgotPasswordMailgenContent,
+  sendEmail,} from "../utils/mail.js";
+import crypto from "crypto";
 /*
 High-level overview
 - This controller contains auth-related handlers (register, login, logout, token refresh,
@@ -161,7 +164,7 @@ const login = asyncHandler(async (req, res) => {
   );
   //cookies require options
   const options = {
-    httponly: true,
+    HttpOnly: true,
     secure: true,
   };
   //now options are ready now send the response
@@ -295,7 +298,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     throw new ApiError(404, " email is already verified");
   } // it means email is not verified then we have to repeat the process
   const { unHashedToken, hashedToken, tokenExpiry } =
-    user.generateTemporaryToken();
+  user.generateTemporaryToken();
   user.emailVerificationToken = hashedToken;
   user.emailVerificationExpiry = tokenExpiry;
   await user.save({ validateBeforeSave: false });
@@ -312,7 +315,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
   });
   //everything is done by our side now send the response or return
   return res
-    .statu(200)
+    .status(200)
     .json(new ApiResponse(200, {}, "email sent ot your email"));
 });
 
@@ -368,11 +371,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       secure: true,
     };
     const { accessToken, refreshtoken: newRefreshToken } =
-      await generateAcessTokenandrefreshTokens(user._id); //dont forget to update the refresh token in the databse
+    await generateAcessTokenandrefreshTokens(user._id); //dont forget to update the refresh token in the databse
     user.refreshToken = newRefreshToken;
     user.save();
     return res
-      .statu(200)
+      .status(200)
       .cookie("accessToke", accessToken, options)
       .cookie("refreshToken", newRefreshToken, options)
       .json(
