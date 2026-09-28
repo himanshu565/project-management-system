@@ -13,6 +13,7 @@ import crypto from "crypto";
 const cookieOptions = {
   httpOnly: true,
   secure: true,
+  sameSite: "none",
 };
 /*
 High-level overview
