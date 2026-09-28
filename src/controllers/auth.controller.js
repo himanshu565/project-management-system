@@ -2,13 +2,18 @@ import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/api-error.js";
-import { EmailverificationMailgenCContent, sendEmail } from "../utils/mail.js";
-import jwt from "jsonwebtoken";
-import { json } from "express";
-import{ EmailverificationMailgenCContent,
+import {
+  EmailverificationMailgenCContent,
   ForgotPasswordMailgenContent,
-  sendEmail,} from "../utils/mail.js";
+  sendEmail,
+} from "../utils/mail.js";
+import jwt from "jsonwebtoken";
 import crypto from "crypto";
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: true,
+};
 /*
 High-level overview
 - This controller contains auth-related handlers (register, login, logout, token refresh,
@@ -98,6 +103,7 @@ const registerUser = asyncHandler(async (req, res) => {
     user.generateTemporaryToken();
   user.emailVerificationToken = hashedToken;
   user.emailVerificationExpiry = tokenExpiry;
+  await user.save({ validateBeforeSave: false });
 
   await sendEmail({
     to: user?.email,
@@ -162,16 +168,10 @@ const login = asyncHandler(async (req, res) => {
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
   );
-  //cookies require options
-  const options = {
-    HttpOnly: true,
-    secure: true,
-  };
-  //now options are ready now send the response
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshtoken, options)
+    .cookie("accessToken", accessToken, cookieOptions)
+    .cookie("refreshToken", refreshtoken, cookieOptions)
     .json(
       new ApiResponse(
         200,
@@ -207,14 +207,10 @@ const logoutUser = asyncHandler(async (req, res) => {
       new: true,
     }
   );
-  const options = {
-    httponly: true,
-    secure: true,
-  };
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", cookieOptions)
+    .clearCookie("refreshToken", cookieOptions)
     .json(new ApiResponse(200, {}, "user logged out "));
 });
 
@@ -254,7 +250,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
     .createHash("sha256")
     .update(verificationToken)
     .digest("hex");
-  const user = User.findOne({
+  const user = await User.findOne({
     emailVerificationToken: hashedToken,
     emailVerificationExpiry: { $gt: Date.now() },
   });
@@ -366,18 +362,14 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     if (incomingRefreshToken !== user?.refreshToken) {
       throw new ApiError(400, "refresh token is expired ");
     }
-    const options = {
-      httponly: true,
-      secure: true,
-    };
     const { accessToken, refreshtoken: newRefreshToken } =
     await generateAcessTokenandrefreshTokens(user._id); //dont forget to update the refresh token in the databse
     user.refreshToken = newRefreshToken;
-    user.save();
+    await user.save();
     return res
       .status(200)
-      .cookie("accessToke", accessToken, options)
-      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, cookieOptions)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
       .json(
         new ApiResponse(
           200,
@@ -410,8 +402,8 @@ const forgotPasswordRequest = asyncHandler(async (req, res) => {
   }
   const { unHashedToken, hashedToken, tokenExpiry } =
     user.generateTemporaryToken();
-  user.emailVerificationToken = hashedToken;
-  user.emailVerificationExpiry = tokenExpiry;
+  user.forgotPasswordToken = hashedToken;
+  user.forgotPasswordExpiry = tokenExpiry;
   await user.save({ validateBeforeSave: false });
 
   await sendEmail({

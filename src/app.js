@@ -2,8 +2,6 @@ import express from "express";
 import CORS from "cors";
 import cookieParser from "cookie-parser";
 import errHandler from "./middlewares/errorHandler.js";
-import { ApiError } from "./utils/api-error.js";
-import ApiResponse from "./utils/Api-Response.js";
 const app = express();
 
 
@@ -28,14 +26,22 @@ app.use(
 import healthcheckRouter from "./routes/healtcheck.routes.js";
 import authRouter from "./routes/auth.route.js";
 import projectRouter from "./routes/project.routes.js";
+import taskRouter from "./routes/task.routes.js";
+import noteRouter from "./routes/note.routes.js";
 app.use("/api/v1/healthcheck", healthcheckRouter);
 
 app.use("/api/v1/auth", authRouter);
 
 app.use("/api/v1/projects", projectRouter);
 
+app.use("/api/v1/tasks", taskRouter);
+
+app.use("/api/v1/notes", noteRouter);
+
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+
+app.use(errHandler);
 
 export default app;

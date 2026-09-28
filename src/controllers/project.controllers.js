@@ -86,11 +86,6 @@ import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 
 const getProjects = asyncHandler(async (req, res) => {
-  // TODO: Review aggregation pipeline here.
-  // - The `$lookup` uses `as: "projects"` but later code unwinds `$project` (singular) — likely a typo/bug.
-  // - Ensure the pipeline returns the expected shape. Consider moving this logic to a service
-  //   layer and adding unit tests for the aggregation to prevent regressions.
-  // - Also consider pagination and projection to limit returned fields for performance.
   const projects = await ProjectMember.aggregate([
     {
       $match: {
@@ -100,15 +95,15 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $lookup: {
         from: "projects",
-        localField: "projects",
+        localField: "project",
         foreignField: "_id",
-        as: "projects",
+        as: "project",
         pipeline: [
           {
             $lookup: {
               from: "projectmembers",
               localField: "_id",
-              foreignField: "projects",
+              foreignField: "project",
               as: "projectmembers",
             },
           },
@@ -123,17 +118,17 @@ const getProjects = asyncHandler(async (req, res) => {
       },
     },
     {
-      $unwind: "$projects",
+      $unwind: "$project",
     },
     {
       $project: {
         project: {
-          _id: 1,
-          name: 1,
-          description: 1,
-          members: 1,
-          createdAt: 1,
-          createdBy: 1,
+          _id: "$project._id",
+          name: "$project.name",
+          description: "$project.description",
+          members: "$project.members",
+          createdAt: "$project.createdAt",
+          createdBy: "$project.createdBy",
         },
         role: 1,
         _id: 0,
@@ -220,18 +215,14 @@ const addMembersToProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const user = await User.findOne({ email });
 
-  // TODO: Validate `role` against allowed roles here (or in a validator middleware).
-  // The current code upserts the ProjectMember; consider whether upsert should be
-  // idempotent (no-op when same role exists) or should return 409/conflict when role differs.
-
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
 
-  await ProjectMember.findByIdAndUpdate(
+  await ProjectMember.findOneAndUpdate(
     {
       user: new mongoose.Types.ObjectId(user._id),
-      project: new mongoose.Types.ObjectId(projectId),  
+      project: new mongoose.Types.ObjectId(projectId),
     },
     {
       user: new mongoose.Types.ObjectId(user._id),
@@ -326,6 +317,17 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  if (projectMember.role === UserRolesEnum.ADMIN && newRole !== UserRolesEnum.ADMIN) {
+    const otherAdminCount = await ProjectMember.countDocuments({
+      project: new mongoose.Types.ObjectId(projectId),
+      role: UserRolesEnum.ADMIN,
+      _id: { $ne: projectMember._id },
+    });
+    if (otherAdminCount === 0) {
+      throw new ApiError(400, "Cannot change role: project must have at least one admin");
+    }
+  }
+
   projectMember = await ProjectMember.findByIdAndUpdate(
     projectMember._id,
     {
@@ -359,6 +361,17 @@ const deleteMember = asyncHandler(async (req, res) => {
 
   if (!projectMember) {
     throw new ApiError(400, "Project member not found");
+  }
+
+  if (projectMember.role === UserRolesEnum.ADMIN) {
+    const otherAdminCount = await ProjectMember.countDocuments({
+      project: new mongoose.Types.ObjectId(projectId),
+      role: UserRolesEnum.ADMIN,
+      _id: { $ne: projectMember._id },
+    });
+    if (otherAdminCount === 0) {
+      throw new ApiError(400, "Cannot remove the only admin of the project");
+    }
   }
 
   projectMember = await ProjectMember.findByIdAndDelete(projectMember._id);
