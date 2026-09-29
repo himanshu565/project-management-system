@@ -79,9 +79,9 @@ A RESTful API service for collaborative project management. Teams can organize p
 |---|---|---|
 | GET | `/:projectId` | List notes in a project |
 | POST | `/:projectId` | Create a note (Admin) |
-| GET | `/:projectId/n/:noteId` | Get note details |
-| PUT | `/:projectId/n/:noteId` | Update a note (Admin) |
-| DELETE | `/:projectId/n/:noteId` | Delete a note (Admin) |
+| GET | `/:projectId/:noteId` | Get note details |
+| PUT | `/:projectId/:noteId` | Update a note (Admin) |
+| DELETE | `/:projectId/:noteId` | Delete a note (Admin) |
 
 ### Health — `/api/v1/healthcheck`
 | Method | Endpoint | Description |

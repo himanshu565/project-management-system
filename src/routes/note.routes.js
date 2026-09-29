@@ -11,6 +11,7 @@ import { createNoteValidator } from "../validators/index.js";
 import {
   verifyJWT,
   validateProjectPermission,
+  validateObjectIdParam,
 } from "../middlewares/auth.middleware.js";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 
@@ -28,14 +29,23 @@ router
   );
 
 router
-  .route("/:projectId/n/:noteId")
-  .get(validateProjectPermission(AvailableUserRole), getNoteById)
+  .route("/:projectId/:noteId")
+  .get(
+    validateProjectPermission(AvailableUserRole),
+    validateObjectIdParam("noteId", "note"),
+    getNoteById
+  )
   .put(
     validateProjectPermission([UserRolesEnum.ADMIN]),
+    validateObjectIdParam("noteId", "note"),
     createNoteValidator(),
     validate,
     updateNote
   )
-  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteNote);
+  .delete(
+    validateProjectPermission([UserRolesEnum.ADMIN]),
+    validateObjectIdParam("noteId", "note"),
+    deleteNote
+  );
 
 export default router;

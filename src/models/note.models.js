@@ -2,6 +2,10 @@ import mongoose, { Schema } from "mongoose";
 
 const projectNoteSchema = new Schema(
   {
+    title: {
+      type: String,
+      trim: true,
+    },
     project: {
       type: Schema.Types.ObjectId,
       ref: "Project",
@@ -15,6 +19,11 @@ const projectNoteSchema = new Schema(
     content: {
       type: String,
       required: true,
+      trim: true,
+    },
+    category: {
+      type: String,
+      trim: true,
     },
   },
   { timestamps: true },

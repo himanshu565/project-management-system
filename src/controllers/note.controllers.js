@@ -17,9 +17,10 @@ const getNotes = asyncHandler(async (req, res) => {
 });
 
 const getNoteById = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { noteId } = req.params;
 
-  const note = await ProjectNote.findById(noteId).populate(
+  const note = await ProjectNote.findOne({ _id: noteId, project: projectId }).populate(
     "createdBy",
     "username avatar"
   );
@@ -35,11 +36,13 @@ const getNoteById = asyncHandler(async (req, res) => {
 
 const createNote = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const { content } = req.body;
+  const { title, content, category } = req.body;
 
   const note = await ProjectNote.create({
     project: projectId,
+    title,
     content,
+    category,
     createdBy: req.user._id,
   });
 
@@ -49,12 +52,15 @@ const createNote = asyncHandler(async (req, res) => {
 });
 
 const updateNote = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { noteId } = req.params;
-  const { content } = req.body;
+  const { title, content, category } = req.body;
 
-  const note = await ProjectNote.findByIdAndUpdate(
-    noteId,
-    { $set: { content } },
+  const update = { title, content, category };
+
+  const note = await ProjectNote.findOneAndUpdate(
+    { _id: noteId, project: projectId },
+    { $set: update },
     { new: true, runValidators: true }
   );
 
@@ -68,9 +74,10 @@ const updateNote = asyncHandler(async (req, res) => {
 });
 
 const deleteNote = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { noteId } = req.params;
 
-  const note = await ProjectNote.findByIdAndDelete(noteId);
+  const note = await ProjectNote.findOneAndDelete({ _id: noteId, project: projectId });
   if (!note) {
     throw new ApiError(404, "Note not found");
   }

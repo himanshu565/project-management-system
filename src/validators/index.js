@@ -86,6 +86,10 @@ const createTaskValidator = () => {
   return [
     body("title").trim().notEmpty().withMessage("Title is required"),
     body("description").optional(),
+    body("status")
+      .optional()
+      .isIn(AvailableTaskStatus)
+      .withMessage("Status is invalid"),
     body("assignedTo").optional().isMongoId().withMessage("assignedTo must be a valid user id"),
   ];
 };
@@ -114,7 +118,11 @@ const updateSubtaskValidator = () => {
 };
 
 const createNoteValidator = () => {
-  return [body("content").trim().notEmpty().withMessage("Content is required")];
+  return [
+    body("title").optional().trim(),
+    body("content").trim().notEmpty().withMessage("Content is required"),
+    body("category").optional().trim(),
+  ];
 };
 
 export {

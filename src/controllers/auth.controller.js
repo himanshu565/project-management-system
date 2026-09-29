@@ -12,8 +12,8 @@ import crypto from "crypto";
 
 const cookieOptions = {
   httpOnly: true,
-  secure: true,
-  sameSite: "none",
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
 };
 /*
 High-level overview
@@ -126,7 +126,7 @@ const registerUser = asyncHandler(async (req, res) => {
     .status(201)
     .json(
       new ApiResponse(
-        200,
+        201,
         { user: createdUser },
         "user registered successfully and verification email has been sent on your email"
       )
@@ -346,7 +346,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
   */
   const incomingRefreshToken =
-    req.body.refreshToken || req.cookies.refreshToken;
+    req.body?.refreshToken || req.cookies?.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "unauthorized user ");
@@ -379,7 +379,11 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiError(400, " invalid refresh token ");
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(401, "Invalid refresh token");
   }
 });
 

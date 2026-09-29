@@ -211,26 +211,36 @@ const searchProjects = asyncHandler(async (req, res) => {
 });
 
 const createProject = asyncHandler(async (req, res) => {
-  // TODO: Consider wrapping the following multi-step operation (create project + create ProjectMember)
-  // in a DB transaction to ensure atomicity. If using Mongoose with a replica set, use session-based
-  // transactions (Project.create(..., { session }) and ProjectMember.create(..., { session })).
   const { name, description } = req.body;
+  const userId = req.user._id;
 
   const project = await Project.create({
     name,
     description,
-    createdBy: new mongoose.Types.ObjectId(req.user._id),
+    createdBy: userId,
   });
 
-  await ProjectMember.create({
-    user: new mongoose.Types.ObjectId(req.user._id),
-    project: new mongoose.Types.ObjectId(project._id),
-    role: UserRolesEnum.ADMIN,
-  });
+  try {
+    await ProjectMember.create({
+      user: userId,
+      project: project._id,
+      role: UserRolesEnum.ADMIN,
+    });
+  } catch (error) {
+    try {
+      await Project.findByIdAndDelete(project._id);
+    } catch (cleanupError) {
+      console.error("Failed to clean up project after membership creation error", {
+        projectId: project._id.toString(),
+        error: cleanupError.message,
+      });
+    }
+    throw error;
+  }
 
   return res
     .status(201)
-    .json(new ApiResponse(201, project, "Project created Successfully"));
+    .json(new ApiResponse(201, project, "Project created successfully"));
 });
 
 const updateProject = asyncHandler(async (req, res) => {

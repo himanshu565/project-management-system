@@ -242,6 +242,7 @@ Subtask ko parent `Task` se link karta hai. `isCompleted` member completion stat
 ### `src/models/note.models.js`
 
 Project note ko project aur creator se link karta hai aur note ka `content` store karta hai.
+Ab note me optional `title` aur `category` fields bhi store hote hain.
 
 **Humne yeh kyu kiya:** Alag schemas se project-management data clearly separated, queryable aur maintainable rehta hai.
 
@@ -250,6 +251,14 @@ Project note ko project aur creator se link karta hai aur note ka `content` stor
 - `getTasks`: project ke tasks return karta hai.
 - Optional `?status=` se task status filter hota hai.
 - Optional `?search=` se title aur description par case-insensitive search hoti hai.
+- Task create/update me `assignedTo` diya ho to user ka real MongoDB ObjectId aur existing User hona zaroori hai.
+- Task get/update/delete queries supplied `projectId` ke saath scoped hain, isliye ek project ka task doosre project ke route se modify nahi ho sakta.
+
+### `src/controllers/note.controllers.js`
+
+- Note create/update `title`, `content` aur `category` support karte hain.
+- Note get/update/delete queries supplied `projectId` ke saath scoped hain.
+- Missing notes `404 Note not found` return karte hain.
 
 ## 9. Shared utilities
 
@@ -287,17 +296,62 @@ Async controller errors ko Express ke `next()` flow tak forward karne ke liye wr
 
 **Humne yeh kyu kiya:** Multer multipart/form-data ko handle karta hai aur size limit server storage misuse ko reduce karti hai.
 
-## 11. Current implementation notes
+## 11. Recent API contract and reliability updates
 
-Yeh points future fixes ke liye important hain:
+### IDs and errors
 
-- `src/controllers/auth.controller.js` me kuch existing typos/logic issues hain, jaise `statu()` aur cookie option `httponly` ki jagah `httpOnly` hona chahiye.
-- Email verification flow me `User.findOne(...)` ko `await` ki zarurat hai.
-- Project creation aur membership creation do database writes hain; production me transaction use karna safer hoga.
-- `src/app.js` me project, task aur note routers mounted hain.
-- Production me uploaded filename sanitize karna aur MIME/type validation add karna chahiye.
+- `validateProjectPermission` invalid project IDs ko database query se pehle reject karta hai.
+- Task aur note routes invalid child IDs ke liye `400 Invalid task ID` ya `400 Invalid note ID` return karte hain.
+- Missing projects, tasks aur notes `404` return karte hain.
+- Invalid access tokens `401` return karte hain; insufficient project permissions `403` return karte hain.
+- Isse malformed frontend values jaise `undefined`, numeric IDs aur `local-*` values Mongoose CastErrors tak nahi pahunchti.
 
-## 12. Short request flow
+### Project creation and deletion
+
+- `POST /api/v1/projects` sirf `name` aur optional `description` use karta hai.
+- Creator ko automatically `admin` ProjectMember record milta hai.
+- Membership creation fail hone par controller newly created project ko clean up karta hai, taaki orphan project na rahe.
+- `DELETE /api/v1/projects/:projectId` existing project delete API hai aur sirf project admin use kar sakta hai.
+
+### Roles
+
+Roles global User document me nahi, `ProjectMember` document me stored hain:
+
+- `admin`
+- `project_admin`
+- `member`
+
+Registration par role accept nahi kiya jata. Project creator ko `admin` milta hai. Existing admin member add karte waqt `POST /api/v1/projects/:projectId/members` me email aur role bhej sakta hai. User ke project-specific roles `GET /api/v1/projects` ke `role` field ya members endpoint se check kiye ja sakte hain.
+
+### Tasks and notes
+
+- Task creation status ko existing values `todo`, `in_progress` ya `done` ke against validate karta hai.
+- `assignedTo` optional hai, lekin diya hone par existing User ka valid ObjectId hona chahiye.
+- Notes ka detail route `/:projectId/:noteId` hai. Purana `/n/:noteId` route use nahi karna chahiye.
+
+### Authentication cookies
+
+- Auth cookies me correct `httpOnly` option use hota hai.
+- Local development me cookies `secure: false` aur `sameSite: lax` use karti hain, taaki HTTP localhost par kaam karein.
+- Production me cookies `secure: true` aur `sameSite: none` use karti hain.
+- Registration response HTTP aur response-envelope dono me `201` report karta hai.
+
+## 12. API verification performed
+
+The backend was run locally with MongoDB and these flows were tested successfully:
+
+- Health check, registration, login, current user, logout and refresh token.
+- Project create, list, get, update, search and delete.
+- Member list, add, role update, delete and invalid-email validation.
+- Task create, list, get, update, delete, search and cross-project protection.
+- Subtask create, update and delete.
+- Note create, list, get, update and delete with title/category.
+- Invalid IDs returned `400`; missing resources returned `404`.
+- Syntax checks, editor diagnostics and `git diff --check` passed.
+
+Disposable test users and project records were removed after testing.
+
+## 13. Short request flow
 
 ```text
 Client request

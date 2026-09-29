@@ -19,6 +19,7 @@ import {
 import {
   verifyJWT,
   validateProjectPermission,
+  validateObjectIdParam,
 } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
@@ -41,15 +42,24 @@ router
 
 router
   .route("/:projectId/t/:taskId")
-  .get(validateProjectPermission(AvailableUserRole), getTaskById)
+  .get(
+    validateProjectPermission(AvailableUserRole),
+    validateObjectIdParam("taskId", "task"),
+    getTaskById
+  )
   .put(
     validateProjectPermission(canManageTasks),
+    validateObjectIdParam("taskId", "task"),
     upload.array("attachments", 10),
     updateTaskValidator(),
     validate,
     updateTask
   )
-  .delete(validateProjectPermission(canManageTasks), deleteTask);
+  .delete(
+    validateProjectPermission(canManageTasks),
+    validateObjectIdParam("taskId", "task"),
+    deleteTask
+  );
 
 router
   .route("/:projectId/t/:taskId/subtasks")

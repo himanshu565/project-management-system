@@ -26,7 +26,11 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    throw new ApiError(400, "Invalid access token");
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(401, "Invalid access token");
   }
 });
 
@@ -39,7 +43,7 @@ export const validateProjectPermission = (roles = []) => {
     }
 
     if (!mongoose.isValidObjectId(projectId)) {
-      throw new ApiError(400, "project id must be a valid MongoDB ObjectId");
+      throw new ApiError(400, "Invalid project ID");
     }
 
     const project = await ProjectMember.findOne({
@@ -48,7 +52,7 @@ export const validateProjectPermission = (roles = []) => {
     });
 
     if (!project) {
-      throw new ApiError(400, "project not found");
+      throw new ApiError(404, "Project not found");
     }
 
     const givenRole = project?.role;
@@ -64,4 +68,14 @@ export const validateProjectPermission = (roles = []) => {
 
     next();
   });
+};
+
+export const validateObjectIdParam = (paramName, resourceName) => {
+  return (req, res, next) => {
+    if (!mongoose.isValidObjectId(req.params[paramName])) {
+      throw new ApiError(400, `Invalid ${resourceName} ID`);
+    }
+
+    next();
+  };
 };

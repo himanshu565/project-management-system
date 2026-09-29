@@ -1,5 +1,6 @@
 import { Task } from "../models/task.models.js";
 import { Subtask } from "../models/subtask.models.js";
+import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -33,9 +34,10 @@ const getTasks = asyncHandler(async (req, res) => {
 });
 
 const getTaskById = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { taskId } = req.params;
 
-  const task = await Task.findById(taskId)
+  const task = await Task.findOne({ _id: taskId, project: projectId })
     .populate("assignedTo", "username avatar")
     .populate("assignedBy", "username avatar");
 
@@ -60,6 +62,13 @@ const createTask = asyncHandler(async (req, res) => {
     size: file.size,
   }));
 
+  if (assignedTo) {
+    const assignedUser = await User.exists({ _id: assignedTo });
+    if (!assignedUser) {
+      throw new ApiError(404, "Assigned user not found");
+    }
+  }
+
   const task = await Task.create({
     title,
     description,
@@ -76,6 +85,7 @@ const createTask = asyncHandler(async (req, res) => {
 });
 
 const updateTask = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { taskId } = req.params;
   const { title, description, assignedTo, status } = req.body;
 
@@ -93,8 +103,15 @@ const updateTask = asyncHandler(async (req, res) => {
   if (attachments.length > 0) update.$push = { attachments: { $each: attachments } };
 
   const { $push, ...setFields } = update;
-  const task = await Task.findByIdAndUpdate(
-    taskId,
+  if (assignedTo !== undefined) {
+    const assignedUser = await User.exists({ _id: assignedTo });
+    if (!assignedUser) {
+      throw new ApiError(404, "Assigned user not found");
+    }
+  }
+
+  const task = await Task.findOneAndUpdate(
+    { _id: taskId, project: projectId },
     { $set: setFields, ...($push ? { $push } : {}) },
     { new: true, runValidators: true }
   );
@@ -109,9 +126,10 @@ const updateTask = asyncHandler(async (req, res) => {
 });
 
 const deleteTask = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { taskId } = req.params;
 
-  const task = await Task.findByIdAndDelete(taskId);
+  const task = await Task.findOneAndDelete({ _id: taskId, project: projectId });
   if (!task) {
     throw new ApiError(404, "Task not found");
   }
