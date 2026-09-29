@@ -79,6 +79,8 @@
 import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
+import { Task } from "../models/task.models.js";
+import { ProjectNote } from "../models/note.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -173,6 +175,39 @@ const getProjectById = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, project, "Project fetched successfully"));
+});
+
+const searchProjects = asyncHandler(async (req, res) => {
+  const search = req.query.q?.trim();
+
+  if (!search) {
+    throw new ApiError(400, "Search query is required");
+  }
+
+  const searchPattern = escapeRegex(search);
+  const projectIds = await ProjectMember.find({ user: req.user._id }).distinct(
+    "project"
+  );
+  const textFilter = { $regex: searchPattern, $options: "i" };
+
+  const [projects, tasks, notes] = await Promise.all([
+    Project.find({
+      _id: { $in: projectIds },
+      $or: [{ name: textFilter }, { description: textFilter }],
+    }).select("name description createdAt"),
+    Task.find({
+      project: { $in: projectIds },
+      $or: [{ title: textFilter }, { description: textFilter }],
+    }).select("title description project status"),
+    ProjectNote.find({
+      project: { $in: projectIds },
+      content: textFilter,
+    }).select("content project createdAt"),
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { projects, tasks, notes }, "Search completed"));
 });
 
 const createProject = asyncHandler(async (req, res) => {
@@ -413,6 +448,7 @@ export {
   createProject,
   deleteMember,
   getProjects,
+  searchProjects,
   getProjectById,
   getProjectMembers,
   updateProject,

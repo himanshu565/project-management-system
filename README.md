@@ -52,7 +52,7 @@ A RESTful API service for collaborative project management. Teams can organize p
 ### Projects — `/api/v1/projects`
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | List projects the user has access to |
+| GET | `/` | List projects the user has access to; supports optional `?search=` |
 | POST | `/` | Create a project |
 | GET | `/:projectId` | Get project details |
 | PUT | `/:projectId` | Update project (Admin) |
@@ -65,7 +65,7 @@ A RESTful API service for collaborative project management. Teams can organize p
 ### Tasks — `/api/v1/tasks`
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/:projectId` | List tasks in a project |
+| GET | `/:projectId` | List tasks in a project; supports optional `?status=` and `?search=` |
 | POST | `/:projectId` | Create a task (Admin / Project Admin) |
 | GET | `/:projectId/t/:taskId` | Get task details |
 | PUT | `/:projectId/t/:taskId` | Update a task (Admin / Project Admin) |

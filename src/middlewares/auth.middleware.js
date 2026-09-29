@@ -38,6 +38,10 @@ export const validateProjectPermission = (roles = []) => {
       throw new ApiError(400, "project id is missing");
     }
 
+    if (!mongoose.isValidObjectId(projectId)) {
+      throw new ApiError(400, "project id must be a valid MongoDB ObjectId");
+    }
+
     const project = await ProjectMember.findOne({
       project: new mongoose.Types.ObjectId(projectId),
       user: new mongoose.Types.ObjectId(req.user._id),

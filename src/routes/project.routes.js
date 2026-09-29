@@ -4,6 +4,7 @@ import {
   createProject,
   deleteMember,
   getProjects,
+  searchProjects,
   getProjectById,
   getProjectMembers,
   updateProject,
@@ -29,6 +30,8 @@ router
   .route("/")
   .get(getProjects)
   .post(createProjectValidator(), validate, createProject);
+
+router.get("/search", searchProjects);
 
 router
   .route("/:projectId")

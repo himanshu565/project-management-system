@@ -174,6 +174,7 @@ Auth endpoints ko controller handlers aur middleware se connect karta hai.
 - Project details/update/delete routes `/:projectId` par hain.
 - Member management routes `/:projectId/members` aur `/:projectId/members/:userId` par hain.
 - Admin-only operations ke liye `validateProjectPermission([UserRolesEnum.ADMIN])` use hota hai.
+- Project list me optional `?search=` query project name aur description par case-insensitive search karti hai.
 
 ### `src/validators/index.js`
 
@@ -216,10 +217,10 @@ User aur Project ke beech membership relation store karta hai.
 
 ### `src/controllers/project.controllers.js`
 
-- `getProjects`: logged-in user ke projects aur member count aggregate karta hai.
+- `getProjects`: logged-in user ke projects aur member count aggregate karta hai; optional `search` query se filter karta hai.
 - `getProjectById`: project details return karta hai.
 - `createProject`: project banata hai aur creator ko admin member banata hai.
-- `updateProject`: project name/description update karta hai.
+- `updateProject`: project name/description update karta hai. Update request me `name` ya `description` me se koi ek field bheji ja sakti hai.
 - `deleteProject`: project delete karta hai.
 - `addMembersToProject`: email se user find karke project membership create/update karta hai.
 - `getProjectMembers`: project ke members ko user profile fields ke saath return karta hai.
@@ -243,6 +244,12 @@ Subtask ko parent `Task` se link karta hai. `isCompleted` member completion stat
 Project note ko project aur creator se link karta hai aur note ka `content` store karta hai.
 
 **Humne yeh kyu kiya:** Alag schemas se project-management data clearly separated, queryable aur maintainable rehta hai.
+
+### `src/controllers/task.controllers.js`
+
+- `getTasks`: project ke tasks return karta hai.
+- Optional `?status=` se task status filter hota hai.
+- Optional `?search=` se title aur description par case-insensitive search hoti hai.
 
 ## 9. Shared utilities
 
@@ -284,13 +291,10 @@ Async controller errors ko Express ke `next()` flow tak forward karne ke liye wr
 
 Yeh points future fixes ke liye important hain:
 
-- `src/app.js` me CORS methods me `"GET "` ke end me extra space hai; ise `"GET"` hona chahiye.
 - `src/controllers/auth.controller.js` me kuch existing typos/logic issues hain, jaise `statu()` aur cookie option `httponly` ki jagah `httpOnly` hona chahiye.
 - Email verification flow me `User.findOne(...)` ko `await` ki zarurat hai.
-- `src/controllers/project.controllers.js` me `getProjectMembers` ko `Project.findById(projectId)` use karna chahiye, `req.params` nahi.
 - Project creation aur membership creation do database writes hain; production me transaction use karna safer hoga.
-- Task aur note models present hain, lekin current `src/app.js` me task/note routers mounted nahi dikhte.
-- `src/models/task.models.js` me exported model ka naam `Taks` hai; future code me naming ko `Task` karna clarity ke liye better hoga.
+- `src/app.js` me project, task aur note routers mounted hain.
 - Production me uploaded filename sanitize karna aur MIME/type validation add karna chahiye.
 
 ## 12. Short request flow
