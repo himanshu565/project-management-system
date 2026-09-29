@@ -85,7 +85,11 @@ import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getProjects = asyncHandler(async (req, res) => {
+  const search = req.query.search?.trim();
+  const searchPattern = search ? escapeRegex(search) : undefined;
   const projects = await ProjectMember.aggregate([
     {
       $match: {
@@ -120,6 +124,23 @@ const getProjects = asyncHandler(async (req, res) => {
     {
       $unwind: "$project",
     },
+    ...(search
+      ? [
+          {
+            $match: {
+              $or: [
+                { "project.name": { $regex: searchPattern, $options: "i" } },
+                {
+                  "project.description": {
+                    $regex: searchPattern,
+                    $options: "i",
+                  },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
     {
       $project: {
         project: {

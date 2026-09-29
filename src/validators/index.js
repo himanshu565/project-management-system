@@ -59,6 +59,13 @@ const createProjectValidator = () => {
   ];
 };
 
+const updateProjectValidator = () => {
+  return [
+    body("name").optional().trim().notEmpty().withMessage("Name cannot be empty"),
+    body("description").optional(),
+  ];
+};
+
 const addMembertoProjectValidator = () => {
   return [
     body("email")
@@ -118,6 +125,7 @@ export {
   userChangeCurrentPasswordValidator,
   addMembertoProjectValidator,
   createProjectValidator,
+  updateProjectValidator,
   createTaskValidator,
   updateTaskValidator,
   createSubtaskValidator,

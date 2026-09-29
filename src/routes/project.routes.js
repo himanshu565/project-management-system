@@ -14,6 +14,7 @@ import { validate } from "../middlewares/validator.middleware.js";
 import {
   createProjectValidator,
   addMembertoProjectValidator,
+  updateProjectValidator,
 } from "../validators/index.js";
 import {
   verifyJWT,
@@ -34,7 +35,7 @@ router
   .get(validateProjectPermission(AvailableUserRole), getProjectById)
   .put(
     validateProjectPermission([UserRolesEnum.ADMIN]),
-    createProjectValidator(),
+    updateProjectValidator(),
     validate,
     updateProject
   )

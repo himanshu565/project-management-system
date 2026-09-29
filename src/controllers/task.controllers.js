@@ -4,10 +4,26 @@ import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
+  const { search, status } = req.query;
+  const filters = { project: projectId };
 
-  const tasks = await Task.find({ project: projectId })
+  if (status) {
+    filters.status = status;
+  }
+
+  if (search?.trim()) {
+    const searchPattern = escapeRegex(search.trim());
+    filters.$or = [
+      { title: { $regex: searchPattern, $options: "i" } },
+      { description: { $regex: searchPattern, $options: "i" } },
+    ];
+  }
+
+  const tasks = await Task.find(filters)
     .populate("assignedTo", "username avatar")
     .populate("assignedBy", "username avatar");
 
