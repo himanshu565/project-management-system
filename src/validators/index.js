@@ -1,5 +1,9 @@
 import { body } from "express-validator";
-import { AvailableUserRole, AvailableTaskStatus } from "../utils/constants.js";
+import {
+  AvailableUserRole,
+  AvailableTaskStatus,
+  AvailableProjectStatus,
+} from "../utils/constants.js";
 
 const userRegisterValidator = () => {
   return [
@@ -56,6 +60,9 @@ const createProjectValidator = () => {
   return [
     body("name").notEmpty().withMessage("Name is required"),
     body("description").optional(),
+    body("status").optional().isIn(AvailableProjectStatus).withMessage("Status is invalid"),
+    body("startDate").optional().isISO8601().withMessage("Start date is invalid"),
+    body("endDate").optional().isISO8601().withMessage("End date is invalid"),
   ];
 };
 
@@ -63,6 +70,9 @@ const updateProjectValidator = () => {
   return [
     body("name").optional().trim().notEmpty().withMessage("Name cannot be empty"),
     body("description").optional(),
+    body("status").optional().isIn(AvailableProjectStatus).withMessage("Status is invalid"),
+    body("startDate").optional().isISO8601().withMessage("Start date is invalid"),
+    body("endDate").optional().isISO8601().withMessage("End date is invalid"),
   ];
 };
 
@@ -70,6 +80,7 @@ const addMembertoProjectValidator = () => {
   return [
     body("email")
       .trim()
+      .normalizeEmail()
       .notEmpty()
       .withMessage("Email is required")
       .isEmail()
@@ -77,6 +88,13 @@ const addMembertoProjectValidator = () => {
     body("role")
       .notEmpty()
       .withMessage("Role is required")
+      .trim()
+      .customSanitizer((value) =>
+        value
+          .replace(/([a-z])([A-Z])/g, "$1_$2")
+          .toLowerCase()
+          .replace(/[\s-]+/g, "_")
+      )
       .isIn(AvailableUserRole)
       .withMessage("Role is invalid"),
   ];

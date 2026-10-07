@@ -62,6 +62,9 @@ A RESTful API service for collaborative project management. Teams can organize p
 | PUT | `/:projectId/members/:userId` | Update a member's role (Admin) |
 | DELETE | `/:projectId/members/:userId` | Remove a member (Admin) |
 
+The add-member request body is `{ "email": "...", "role": "admin|project_admin|member" }`.
+Role labels with spaces or hyphens are normalized to the corresponding API value.
+
 ### Tasks — `/api/v1/tasks`
 | Method | Endpoint | Description |
 |---|---|---|

@@ -1,6 +1,7 @@
 import { Task } from "../models/task.models.js";
 import { Subtask } from "../models/subtask.models.js";
 import { User } from "../models/user.models.js";
+import { ProjectMember } from "../models/projectmember.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -38,6 +39,7 @@ const getTaskById = asyncHandler(async (req, res) => {
   const { taskId } = req.params;
 
   const task = await Task.findOne({ _id: taskId, project: projectId })
+    .populate("project", "name description status startDate endDate")
     .populate("assignedTo", "username avatar")
     .populate("assignedBy", "username avatar");
 
@@ -63,6 +65,14 @@ const createTask = asyncHandler(async (req, res) => {
   }));
 
   if (assignedTo) {
+    const assignedMember = await ProjectMember.exists({
+      user: assignedTo,
+      project: projectId,
+    });
+    if (!assignedMember) {
+      throw new ApiError(400, "Assigned user is not a member of this project");
+    }
+
     const assignedUser = await User.exists({ _id: assignedTo });
     if (!assignedUser) {
       throw new ApiError(404, "Assigned user not found");
@@ -104,6 +114,14 @@ const updateTask = asyncHandler(async (req, res) => {
 
   const { $push, ...setFields } = update;
   if (assignedTo !== undefined) {
+    const assignedMember = await ProjectMember.exists({
+      user: assignedTo,
+      project: projectId,
+    });
+    if (!assignedMember) {
+      throw new ApiError(400, "Assigned user is not a member of this project");
+    }
+
     const assignedUser = await User.exists({ _id: assignedTo });
     if (!assignedUser) {
       throw new ApiError(404, "Assigned user not found");
@@ -122,7 +140,16 @@ const updateTask = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, task, "Task updated successfully"));
+    .json(
+      new ApiResponse(
+        200,
+        await Task.findById(task._id)
+          .populate("project", "name description status startDate endDate")
+          .populate("assignedTo", "username avatar")
+          .populate("assignedBy", "username avatar"),
+        "Task updated successfully"
+      )
+    );
 });
 
 const deleteTask = asyncHandler(async (req, res) => {
@@ -162,12 +189,26 @@ const createSubTask = asyncHandler(async (req, res) => {
 });
 
 const updateSubTask = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { subTaskId } = req.params;
   const { title, isCompleted } = req.body;
 
   const update = {};
   if (title !== undefined) update.title = title;
   if (isCompleted !== undefined) update.isCompleted = isCompleted;
+
+  const existingSubtask = await Subtask.findById(subTaskId).select("task");
+  if (!existingSubtask) {
+    throw new ApiError(404, "Subtask not found");
+  }
+
+  const task = await Task.exists({
+    _id: existingSubtask.task,
+    project: projectId,
+  });
+  if (!task) {
+    throw new ApiError(404, "Subtask not found");
+  }
 
   const subtask = await Subtask.findByIdAndUpdate(
     subTaskId,
@@ -185,7 +226,21 @@ const updateSubTask = asyncHandler(async (req, res) => {
 });
 
 const deleteSubTask = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
   const { subTaskId } = req.params;
+
+  const existingSubtask = await Subtask.findById(subTaskId).select("task");
+  if (!existingSubtask) {
+    throw new ApiError(404, "Subtask not found");
+  }
+
+  const task = await Task.exists({
+    _id: existingSubtask.task,
+    project: projectId,
+  });
+  if (!task) {
+    throw new ApiError(404, "Subtask not found");
+  }
 
   const subtask = await Subtask.findByIdAndDelete(subTaskId);
   if (!subtask) {

@@ -217,6 +217,9 @@ const createProject = asyncHandler(async (req, res) => {
   const project = await Project.create({
     name,
     description,
+    status: req.body.status,
+    startDate: req.body.startDate,
+    endDate: req.body.endDate,
     createdBy: userId,
   });
 
@@ -244,16 +247,19 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 const updateProject = asyncHandler(async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, status, startDate, endDate } = req.body;
   const { projectId } = req.params;
+  const updates = {};
+  if (name !== undefined) updates.name = name;
+  if (description !== undefined) updates.description = description;
+  if (status !== undefined) updates.status = status;
+  if (startDate !== undefined) updates.startDate = startDate;
+  if (endDate !== undefined) updates.endDate = endDate;
 
   const project = await Project.findByIdAndUpdate(
     projectId,
-    {
-      name,
-      description,
-    },
-    { new: true }
+    updates,
+    { new: true, runValidators: true }
   );
 
   if (!project) {
@@ -279,31 +285,46 @@ const deleteProject = asyncHandler(async (req, res) => {
 const addMembersToProject = asyncHandler(async (req, res) => {
   const { email, role } = req.body;
   const { projectId } = req.params;
+  const project = await Project.exists({ _id: projectId });
+
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new ApiError(404, "User does not exists");
+    throw new ApiError(404, "User does not exist");
   }
 
-  await ProjectMember.findOneAndUpdate(
+  const projectMember = await ProjectMember.findOneAndUpdate(
     {
-      user: new mongoose.Types.ObjectId(user._id),
-      project: new mongoose.Types.ObjectId(projectId),
+      user: user._id,
+      project: projectId,
     },
     {
-      user: new mongoose.Types.ObjectId(user._id),
-      project: new mongoose.Types.ObjectId(projectId),
-      role: role,
+      $set: { role },
+      $setOnInsert: {
+        user: user._id,
+        project: projectId,
+      },
     },
     {
       new: true,
       upsert: true,
+      runValidators: true,
     }
-  );
+  ).populate("user", "username fullName avatar email");
 
   return res
     .status(201)
-    .json(new ApiResponse(201, {message: "Project member added successfully"}, "Project member added successfully"));
+    .json(
+      new ApiResponse(
+        201,
+        projectMember,
+        "Project member added successfully"
+      )
+    );
 });
 
 const getProjectMembers = asyncHandler(async (req, res) => {
@@ -336,6 +357,7 @@ const getProjectMembers = asyncHandler(async (req, res) => {
               _id: 1,
               username: 1,
               fullName: 1,
+              email: 1,
               avatar: 1,
             },
           },
