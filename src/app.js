@@ -13,9 +13,13 @@ app.use(cookieParser());
 
 
 // cors configurations
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : ["http://localhost:3000"];
+
 app.use(
   CORS({
-    origin: process.env.CORS_ORIGIN?.split(",") || "http://localhost:3000", //5173 is for vite dev server            2
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
     allowedHeaders: ["content-type", "Authorization"],
@@ -31,6 +35,7 @@ import noteRouter from "./routes/note.routes.js";
 app.use("/api/v1/healthcheck", healthcheckRouter);
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/users", authRouter);
 
 app.use("/api/v1/projects", projectRouter);
 

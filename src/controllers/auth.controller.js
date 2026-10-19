@@ -14,6 +14,7 @@ const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/",
 };
 /*
 High-level overview
@@ -113,7 +114,7 @@ const registerUser = asyncHandler(async (req, res) => {
       user.username,
       `${req.protocol}://${req.get(
         "host"
-      )}/api/v1/users/verify-email/${unHashedToken}`
+      )}/api/v1/auth/verify-email/${unHashedToken}`
     ),
   });
   const createdUser = await User.findById(user._id).select(
@@ -180,6 +181,7 @@ const login = asyncHandler(async (req, res) => {
           user: loggedInUser,
           accessToken,
           refreshtoken,
+          refreshToken: refreshtoken,
         },
         "user is logged in successfully"
       )
@@ -307,7 +309,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
       user.username,
       `${req.protocol}://${req.get(
         "host"
-      )}/api/v1/users/verify-email/${unHashedToken}`
+      )}/api/v1/auth/verify-email/${unHashedToken}`
     ),
   });
   //everything is done by our side now send the response or return
@@ -364,9 +366,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(400, "refresh token is expired ");
     }
     const { accessToken, refreshtoken: newRefreshToken } =
-    await generateAcessTokenandrefreshTokens(user._id); //dont forget to update the refresh token in the databse
-    user.refreshToken = newRefreshToken;
-    await user.save();
+      await generateAcessTokenandrefreshTokens(user._id);
     return res
       .status(200)
       .cookie("accessToken", accessToken, cookieOptions)

@@ -169,10 +169,10 @@ const deleteTask = asyncHandler(async (req, res) => {
 });
 
 const createSubTask = asyncHandler(async (req, res) => {
-  const { taskId } = req.params;
+  const { taskId, projectId } = req.params;
   const { title } = req.body;
 
-  const task = await Task.findById(taskId);
+  const task = await Task.findOne({ _id: taskId, project: projectId });
   if (!task) {
     throw new ApiError(404, "Task not found");
   }

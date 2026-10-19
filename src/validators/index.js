@@ -58,21 +58,39 @@ const userResetForgotPasswordValidator = () => {
 };
 const createProjectValidator = () => {
   return [
-    body("name").notEmpty().withMessage("Name is required"),
-    body("description").optional(),
-    body("status").optional().isIn(AvailableProjectStatus).withMessage("Status is invalid"),
-    body("startDate").optional().isISO8601().withMessage("Start date is invalid"),
-    body("endDate").optional().isISO8601().withMessage("End date is invalid"),
+    body("name").trim().notEmpty().withMessage("Name is required"),
+    body("description").optional({ values: "falsy" }).trim(),
+    body("status").optional({ values: "falsy" }).isIn(AvailableProjectStatus).withMessage("Status is invalid"),
+    body("startDate").optional({ values: "falsy" }).isISO8601().withMessage("Start date is invalid"),
+    body("endDate")
+      .optional({ values: "falsy" })
+      .isISO8601()
+      .withMessage("End date is invalid")
+      .custom((endDate, { req }) => {
+        if (req.body?.startDate && endDate && new Date(endDate) < new Date(req.body.startDate)) {
+          throw new Error("End date cannot be earlier than start date");
+        }
+        return true;
+      }),
   ];
 };
 
 const updateProjectValidator = () => {
   return [
     body("name").optional().trim().notEmpty().withMessage("Name cannot be empty"),
-    body("description").optional(),
-    body("status").optional().isIn(AvailableProjectStatus).withMessage("Status is invalid"),
-    body("startDate").optional().isISO8601().withMessage("Start date is invalid"),
-    body("endDate").optional().isISO8601().withMessage("End date is invalid"),
+    body("description").optional().trim(),
+    body("status").optional({ values: "falsy" }).isIn(AvailableProjectStatus).withMessage("Status is invalid"),
+    body("startDate").optional({ values: "falsy" }).isISO8601().withMessage("Start date is invalid"),
+    body("endDate")
+      .optional({ values: "falsy" })
+      .isISO8601()
+      .withMessage("End date is invalid")
+      .custom((endDate, { req }) => {
+        if (req.body?.startDate && endDate && new Date(endDate) < new Date(req.body.startDate)) {
+          throw new Error("End date cannot be earlier than start date");
+        }
+        return true;
+      }),
   ];
 };
 

@@ -80,6 +80,7 @@ import { User } from "../models/user.models.js";
 import { Project } from "../models/project.models.js";
 import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
+import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
@@ -149,8 +150,12 @@ const getProjects = asyncHandler(async (req, res) => {
           _id: "$project._id",
           name: "$project.name",
           description: "$project.description",
+          status: "$project.status",
+          startDate: "$project.startDate",
+          endDate: "$project.endDate",
           members: "$project.members",
           createdAt: "$project.createdAt",
+          updatedAt: "$project.updatedAt",
           createdBy: "$project.createdBy",
         },
         role: 1,
@@ -172,9 +177,21 @@ const getProjectById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Project not found");
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, project, "Project fetched successfully"));
+  const memberCount = await ProjectMember.countDocuments({
+    project: new mongoose.Types.ObjectId(projectId),
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        ...project.toObject(),
+        memberCount,
+        role: req.user.role,
+      },
+      "Project fetched successfully"
+    )
+  );
 });
 
 const searchProjects = asyncHandler(async (req, res) => {
@@ -194,7 +211,7 @@ const searchProjects = asyncHandler(async (req, res) => {
     Project.find({
       _id: { $in: projectIds },
       $or: [{ name: textFilter }, { description: textFilter }],
-    }).select("name description createdAt"),
+    }).select("name description status startDate endDate createdAt"),
     Task.find({
       project: { $in: projectIds },
       $or: [{ title: textFilter }, { description: textFilter }],
@@ -241,9 +258,17 @@ const createProject = asyncHandler(async (req, res) => {
     throw error;
   }
 
-  return res
-    .status(201)
-    .json(new ApiResponse(201, project, "Project created successfully"));
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        ...project.toObject(),
+        role: UserRolesEnum.ADMIN,
+        memberCount: 1,
+      },
+      "Project created successfully"
+    )
+  );
 });
 
 const updateProject = asyncHandler(async (req, res) => {
@@ -265,21 +290,51 @@ const updateProject = asyncHandler(async (req, res) => {
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, project, "Project updated successfully"));
+
+  const memberCount = await ProjectMember.countDocuments({
+    project: new mongoose.Types.ObjectId(projectId),
+  });
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        ...project.toObject(),
+        memberCount,
+        role: req.user.role,
+      },
+      "Project updated successfully"
+    )
+  );
 });
 
 const deleteProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
 
-  const project = await Project.findByIdAndDelete(projectId);
+  const project = await Project.findById(projectId);
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
-  return res
-    .status(200)
-    .json(new ApiResponse(200, project, "Project deleted successfully"));
+
+  const projectTasks = await Task.find({ project: projectId }).select("_id");
+  const taskIds = projectTasks.map((t) => t._id);
+
+  if (taskIds.length > 0) {
+    await Subtask.deleteMany({ task: { $in: taskIds } });
+  }
+
+  await Task.deleteMany({ project: projectId });
+  await ProjectNote.deleteMany({ project: projectId });
+  await ProjectMember.deleteMany({ project: projectId });
+  await Project.findByIdAndDelete(projectId);
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      project,
+      "Project and all associated resources deleted successfully"
+    )
+  );
 });
 
 const addMembersToProject = asyncHandler(async (req, res) => {

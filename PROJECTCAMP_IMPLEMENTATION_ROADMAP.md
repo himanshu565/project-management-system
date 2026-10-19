@@ -91,8 +91,8 @@ Use Antigravity or another repository-aware coding agent, but keep the work cons
 
 ## 4. Phase plan and progress checklist
 
-- [ ] **Phase 0 — Baseline and local audit**
-- [ ] **Phase 1 — Stabilize frontend/backend integration and authentication**
+- [x] **Phase 0 — Baseline and local audit**
+- [x] **Phase 1 — Stabilize frontend/backend integration and authentication**
 - [ ] **Phase 2 — Complete project and membership workflows**
 - [ ] **Phase 3 — Complete tasks, subtasks, notes, and attachments**
 - [ ] **Phase 4 — Reliability, authorization tests, and UX states**
@@ -105,15 +105,15 @@ Use Antigravity or another repository-aware coding agent, but keep the work cons
 
 Tasks:
 
-- [ ] Confirm the local frontend remote is `https://github.com/himanshu565/projectcamp_frontend.git` (or report its actual URL if intentionally different).
-- [ ] Confirm the local backend remote is `https://github.com/himanshu565/project-management-system.git` (or report its actual URL if intentionally different).
-- [ ] Record each current branch and `git status --short` output. Do not revert anything.
-- [ ] Review frontend `package.json`, `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `lib/api.ts`, auth components, dashboard, project detail pages, task pages, notes, and shared layouts.
-- [ ] Review backend `README.md`, `PRD.md`, `PRojectnotes.md`, `package.json`, `src/app.js`, `src/server.js`, routes, controllers, models, validators, auth middleware, permission middleware, upload middleware, and error handlers.
-- [ ] Inspect the current API response envelope, field names, login/register payloads, cookie attributes, refresh behavior, CORS policy, and deployed environment variables' *names* (never print values/secrets).
-- [ ] Run the existing frontend lint/build/type-check scripts if available; run safe backend syntax checks and inspect available scripts. Record missing test coverage as a gap, not a pass.
-- [ ] Create a functional inventory: `Works`, `Broken`, `Not implemented`, or `Not verified` for each UI feature.
-- [ ] Identify the three highest-priority confirmed failures, with file paths and reproduction steps.
+- [x] Confirm the local frontend remote is `https://github.com/himanshu565/projectcamp_frontend.git` (or report its actual URL if intentionally different).
+- [x] Confirm the local backend remote is `https://github.com/himanshu565/project-management-system.git` (or report its actual URL if intentionally different).
+- [x] Record each current branch and `git status --short` output. Do not revert anything.
+- [x] Review frontend `package.json`, `next.config.ts`, `tsconfig.json`, `eslint.config.mjs`, `lib/api.ts`, auth components, dashboard, project detail pages, task pages, notes, and shared layouts.
+- [x] Review backend `README.md`, `PRD.md`, `PRojectnotes.md`, `package.json`, `src/app.js`, `src/server.js`, routes, controllers, models, validators, auth middleware, permission middleware, upload middleware, and error handlers.
+- [x] Inspect the current API response envelope, field names, login/register payloads, cookie attributes, refresh behavior, CORS policy, and deployed environment variables' *names* (never print values/secrets).
+- [x] Run the existing frontend lint/build/type-check scripts if available; run safe backend syntax checks and inspect available scripts. Record missing test coverage as a gap, not a pass.
+- [x] Create a functional inventory: `Works`, `Broken`, `Not implemented`, or `Not verified` for each UI feature.
+- [x] Identify the three highest-priority confirmed failures, with file paths and reproduction steps.
 
 **Acceptance criteria:** No application source files modified in this phase. The report distinguishes verified facts from guesses and includes a safe implementation order.
 
@@ -123,15 +123,15 @@ Tasks:
 
 Tasks:
 
-- [ ] Confirm frontend rewrite/proxy target matches the backend deployment and local-development setup.
-- [ ] Define one documented base-URL strategy. Keep browser requests consistent with the existing `/api/v1` proxy unless the audit provides a concrete reason to change it.
-- [ ] Trace registration → verification requirements → login → current-user → refresh → logout end-to-end.
-- [ ] Choose one intentional credential contract based on actual backend behavior. Prefer HTTP-only cookies if the backend sets and validates them; avoid storing a sensitive access token in `localStorage` when cookie auth is the intended design.
-- [ ] Ensure every cookie-authenticated request uses `credentials: "include"` where needed, including registration if it establishes a session.
-- [ ] Verify production cookie settings (`Secure`, `SameSite`, path/domain if set), CORS origin/credentials behavior, and the frontend rewrite/proxy. Do not loosen CORS to `*` with credentials.
-- [ ] Handle expired/invalid sessions consistently: current-user fails cleanly, protected routes redirect to login, API requests show a useful state, refresh does not create loops, and logout clears the session.
-- [ ] Wire “Forgot password?” and email-verification/resend UI to existing backend flows if present. If UI is absent, add the smallest usable flow supported by the API. Never fake a successful email action.
-- [ ] Use one shared API utility for JSON parsing, credentials, error normalization, and typed responses where practical. Avoid rewriting every component at once.
+- [x] Confirm frontend rewrite/proxy target matches the backend deployment and local-development setup.
+- [x] Define one documented base-URL strategy. Keep browser requests consistent with the existing `/api/v1` proxy unless the audit provides a concrete reason to change it.
+- [x] Trace registration → verification requirements → login → current-user → refresh → logout end-to-end.
+- [x] Choose one intentional credential contract based on actual backend behavior. Prefer HTTP-only cookies if the backend sets and validates them; avoid storing a sensitive access token in `localStorage` when cookie auth is the intended design.
+- [x] Ensure every cookie-authenticated request uses `credentials: "include"` where needed, including registration if it establishes a session.
+- [x] Verify production cookie settings (`Secure`, `SameSite`, path/domain if set), CORS origin/credentials behavior, and the frontend rewrite/proxy. Do not loosen CORS to `*` with credentials.
+- [x] Handle expired/invalid sessions consistently: current-user fails cleanly, protected routes redirect to login, API requests show a useful state, refresh does not create loops, and logout clears the session.
+- [x] Wire “Forgot password?” and email-verification/resend UI to existing backend flows if present. If UI is absent, add the smallest usable flow supported by the API. Never fake a successful email action.
+- [x] Use one shared API utility for JSON parsing, credentials, error normalization, and typed responses where practical. Avoid rewriting every component at once.
 
 **Acceptance criteria:** A new user can follow the supported registration/verification/login path; an authenticated session survives a page reload according to the cookie contract; protected APIs work without manually editing local storage; logout prevents continued access; invalid credentials and API outages display useful messages. Tests or a reproducible manual test sheet cover success and failure paths.
 
@@ -259,6 +259,8 @@ Update this section after each phase with factual results. Do not mark work comp
 | Date | Phase | Result | Checks run | Remaining blockers |
 | --- | --- | --- | --- | --- |
 | 2026-10-17 | Roadmap created | Plan prepared from public repo state; local state still needs verification | Public README/package/config/source reviewed | Phase 0 not started |
+| 2026-10-18 | Phase 0 — Baseline & Audit | Local state verified (remotes, branches, envs, syntax, contracts, inventory) | `node -c`, `tsc --noEmit`, `eslint .`, remote/git checks | No tests, Phase 1 auth stabilization needed |
+| 2026-10-19 | Phase 1 — Auth & Integration | Single HTTP-only cookie contract, robust proxy, automatic token refresh, server logout, forgot/reset password & verification UI added | 15 backend tests passed (`node --test`), frontend `tsc --noEmit` and `eslint .` passed (0 errors) | Phase 2 project/member synchronization |
 
 ---
 
