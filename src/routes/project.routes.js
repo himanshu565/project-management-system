@@ -10,6 +10,8 @@ import {
   updateProject,
   deleteProject,
   updateMemberRole,
+  getProjectActivities,
+  getProjectHealthSummary,
 } from "../controllers/project.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import {
@@ -67,5 +69,13 @@ router
     validateObjectIdParam("userId", "user"),
     deleteMember
   );
+
+router
+  .route("/:projectId/activities")
+  .get(validateProjectPermission(AvailableUserRole), getProjectActivities);
+
+router
+  .route("/:projectId/health-summary")
+  .get(validateProjectPermission(AvailableUserRole), getProjectHealthSummary);
 
 export default router;

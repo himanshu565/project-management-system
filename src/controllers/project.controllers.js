@@ -82,11 +82,22 @@ import { ProjectMember } from "../models/projectmember.models.js";
 import { Task } from "../models/task.models.js";
 import { Subtask } from "../models/subtask.models.js";
 import { ProjectNote } from "../models/note.models.js";
+import { Activity } from "../models/activity.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { recordActivity } from "../utils/activity-logger.js";
 import mongoose from "mongoose";
-import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import {
+  AvailableUserRole,
+  UserRolesEnum,
+  ProjectStatusEnum,
+  taskStatusEnum,
+  ActivityActionEnum,
+  ActivityResourceEnum,
+  AvailableActivityActions,
+  AvailableActivityResources,
+} from "../utils/constants.js";
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -258,6 +269,16 @@ const createProject = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  await recordActivity({
+    project: project._id,
+    actor: userId,
+    actionType: ActivityActionEnum.PROJECT_CREATED,
+    resourceType: ActivityResourceEnum.PROJECT,
+    resourceId: project._id,
+    summary: `Created project "${project.name}"`,
+    metadata: { status: project.status },
+  });
+
   return res.status(201).json(
     new ApiResponse(
       201,
@@ -295,6 +316,16 @@ const updateProject = asyncHandler(async (req, res) => {
     project: new mongoose.Types.ObjectId(projectId),
   });
 
+  await recordActivity({
+    project: project._id,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.PROJECT_UPDATED,
+    resourceType: ActivityResourceEnum.PROJECT,
+    resourceId: project._id,
+    summary: `Updated project "${project.name}" details`,
+    metadata: updates,
+  });
+
   return res.status(200).json(
     new ApiResponse(
       200,
@@ -326,6 +357,7 @@ const deleteProject = asyncHandler(async (req, res) => {
   await Task.deleteMany({ project: projectId });
   await ProjectNote.deleteMany({ project: projectId });
   await ProjectMember.deleteMany({ project: projectId });
+  await Activity.deleteMany({ project: projectId });
   await Project.findByIdAndDelete(projectId);
 
   return res.status(200).json(
@@ -370,6 +402,16 @@ const addMembersToProject = asyncHandler(async (req, res) => {
       runValidators: true,
     }
   ).populate("user", "username fullName avatar email");
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.MEMBER_ADDED,
+    resourceType: ActivityResourceEnum.MEMBER,
+    resourceId: user._id,
+    summary: `Added ${user.email} as ${role}`,
+    metadata: { email: user.email, role },
+  });
 
   return res
     .status(201)
@@ -483,6 +525,16 @@ const updateMemberRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.MEMBER_ROLE_UPDATED,
+    resourceType: ActivityResourceEnum.MEMBER,
+    resourceId: userId,
+    summary: `Updated member role to ${newRole}`,
+    metadata: { newRole },
+  });
+
   return res
     .status(200)
     .json(
@@ -523,11 +575,176 @@ const deleteMember = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Project member not found");
   }
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.MEMBER_REMOVED,
+    resourceType: ActivityResourceEnum.MEMBER,
+    resourceId: userId,
+    summary: `Removed member from project`,
+  });
+
   return res
     .status(200)
     .json(
       new ApiResponse(200, projectMember, "Project member deleted successfully")
     );
+});
+
+const getProjectActivities = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const skip = (page - 1) * limit;
+
+  const filter = { project: new mongoose.Types.ObjectId(projectId) };
+
+  if (req.query.actionType && AvailableActivityActions.includes(req.query.actionType)) {
+    filter.actionType = req.query.actionType;
+  }
+
+  if (req.query.resourceType && AvailableActivityResources.includes(req.query.resourceType)) {
+    filter.resourceType = req.query.resourceType;
+  }
+
+  const [activities, total] = await Promise.all([
+    Activity.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("actor", "username fullName avatar email"),
+    Activity.countDocuments(filter),
+  ]);
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        activities,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      },
+      "Project activities fetched successfully"
+    )
+  );
+});
+
+const getProjectHealthSummary = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+
+  const project = await Project.findById(projectId).select("name status startDate endDate");
+  if (!project) {
+    throw new ApiError(404, "Project not found");
+  }
+
+  const [tasks, memberCount] = await Promise.all([
+    Task.find({ project: projectId }).select("title status dueDate priority"),
+    ProjectMember.countDocuments({ project: new mongoose.Types.ObjectId(projectId) }),
+  ]);
+
+  const now = new Date();
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+  let completedTasks = 0;
+  let inProgressTasks = 0;
+  let todoTasks = 0;
+  let overdueTasks = 0;
+  let dueSoonTasks = 0;
+
+  const priorityBreakdown = {
+    low: 0,
+    medium: 0,
+    high: 0,
+    urgent: 0,
+  };
+
+  for (const task of tasks) {
+    if (task.status === taskStatusEnum.DONE) {
+      completedTasks++;
+    } else if (task.status === taskStatusEnum.IN_PROGRESS) {
+      inProgressTasks++;
+    } else {
+      todoTasks++;
+    }
+
+    if (task.priority && priorityBreakdown[task.priority] !== undefined) {
+      priorityBreakdown[task.priority]++;
+    } else {
+      priorityBreakdown.medium++;
+    }
+
+    if (task.status !== taskStatusEnum.DONE && task.dueDate) {
+      const taskDue = new Date(task.dueDate);
+      if (taskDue < now) {
+        overdueTasks++;
+      } else if (taskDue <= threeDaysFromNow) {
+        dueSoonTasks++;
+      }
+    }
+  }
+
+  const totalTasks = tasks.length;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const openTasks = totalTasks - completedTasks;
+
+  let healthStatus = "On Track";
+  let healthReason = "All milestones are on track with zero overdue tasks.";
+
+  if (totalTasks === 0) {
+    healthStatus = "Not Started";
+    healthReason = "No tasks have been created yet.";
+  } else if (completionPercentage === 100) {
+    healthStatus = "Completed";
+    healthReason = "All project tasks have been successfully completed.";
+  } else if (overdueTasks > 2 || (openTasks > 0 && overdueTasks / openTasks > 0.3)) {
+    healthStatus = "Critical";
+    healthReason = `${overdueTasks} open task${overdueTasks > 1 ? "s are" : " is"} overdue. Immediate intervention required.`;
+  } else if (overdueTasks > 0 || priorityBreakdown.urgent > 0) {
+    healthStatus = "At Risk";
+    healthReason = overdueTasks > 0
+      ? `${overdueTasks} task${overdueTasks > 1 ? "s are" : " is"} overdue.`
+      : `${priorityBreakdown.urgent} urgent task${priorityBreakdown.urgent > 1 ? "s" : ""} in progress.`;
+  }
+
+  const isScheduleOverdue = project.endDate
+    ? new Date(project.endDate) < now && project.status !== ProjectStatusEnum.COMPLETED
+    : false;
+
+  const summary = {
+    projectId: project._id,
+    projectName: project.name,
+    projectStatus: project.status,
+    healthStatus,
+    healthReason,
+    completionPercentage,
+    tasks: {
+      total: totalTasks,
+      completed: completedTasks,
+      inProgress: inProgressTasks,
+      todo: todoTasks,
+      overdue: overdueTasks,
+      dueSoon: dueSoonTasks,
+    },
+    priorityBreakdown,
+    schedule: {
+      startDate: project.startDate || null,
+      endDate: project.endDate || null,
+      isOverdue: isScheduleOverdue,
+    },
+    memberCount,
+  };
+
+  return res.status(200).json(
+    new ApiResponse(200, summary, "Project health summary retrieved successfully")
+  );
 });
 
 export {
@@ -541,4 +758,6 @@ export {
   updateProject,
   deleteProject,
   updateMemberRole,
+  getProjectActivities,
+  getProjectHealthSummary,
 };

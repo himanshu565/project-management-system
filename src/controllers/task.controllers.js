@@ -5,6 +5,8 @@ import { ProjectMember } from "../models/projectmember.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { recordActivity } from "../utils/activity-logger.js";
+import { ActivityActionEnum, ActivityResourceEnum } from "../utils/constants.js";
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -56,7 +58,7 @@ const getTaskById = asyncHandler(async (req, res) => {
 
 const createTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-  const { title, description, assignedTo, status } = req.body;
+  const { title, description, assignedTo, status, dueDate, priority } = req.body;
 
   const attachments = (req.files || []).map((file) => ({
     url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
@@ -86,7 +88,19 @@ const createTask = asyncHandler(async (req, res) => {
     assignedTo: assignedTo || undefined,
     assignedBy: req.user._id,
     status,
+    dueDate: dueDate ? new Date(dueDate) : undefined,
+    priority: priority || undefined,
     attachments,
+  });
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.TASK_CREATED,
+    resourceType: ActivityResourceEnum.TASK,
+    resourceId: task._id,
+    summary: `Created task "${task.title}"`,
+    metadata: { status: task.status, priority: task.priority, dueDate: task.dueDate },
   });
 
   return res
@@ -97,7 +111,7 @@ const createTask = asyncHandler(async (req, res) => {
 const updateTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const { taskId } = req.params;
-  const { title, description, assignedTo, status } = req.body;
+  const { title, description, assignedTo, status, dueDate, priority } = req.body;
 
   const attachments = (req.files || []).map((file) => ({
     url: `${req.protocol}://${req.get("host")}/images/${file.filename}`,
@@ -110,6 +124,8 @@ const updateTask = asyncHandler(async (req, res) => {
   if (description !== undefined) update.description = description;
   if (assignedTo !== undefined) update.assignedTo = assignedTo;
   if (status !== undefined) update.status = status;
+  if (dueDate !== undefined) update.dueDate = dueDate ? new Date(dueDate) : null;
+  if (priority !== undefined) update.priority = priority;
   if (attachments.length > 0) update.$push = { attachments: { $each: attachments } };
 
   const { $push, ...setFields } = update;
@@ -128,15 +144,38 @@ const updateTask = asyncHandler(async (req, res) => {
     }
   }
 
+  const existingTask = await Task.findOne({ _id: taskId, project: projectId });
+  if (!existingTask) {
+    throw new ApiError(404, "Task not found");
+  }
+
   const task = await Task.findOneAndUpdate(
     { _id: taskId, project: projectId },
     { $set: setFields, ...($push ? { $push } : {}) },
     { new: true, runValidators: true }
   );
 
-  if (!task) {
-    throw new ApiError(404, "Task not found");
-  }
+  const isStatusChanged = status && status !== existingTask.status;
+  const actionType = isStatusChanged
+    ? ActivityActionEnum.TASK_STATUS_CHANGED
+    : ActivityActionEnum.TASK_UPDATED;
+  const summary = isStatusChanged
+    ? `Changed status of task "${task.title}" to ${task.status}`
+    : `Updated task "${task.title}"`;
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType,
+    resourceType: ActivityResourceEnum.TASK,
+    resourceId: task._id,
+    summary,
+    metadata: {
+      status: task.status,
+      priority: task.priority,
+      previousStatus: existingTask.status,
+    },
+  });
 
   return res
     .status(200)
@@ -163,6 +202,15 @@ const deleteTask = asyncHandler(async (req, res) => {
 
   await Subtask.deleteMany({ task: taskId });
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.TASK_DELETED,
+    resourceType: ActivityResourceEnum.TASK,
+    resourceId: task._id,
+    summary: `Deleted task "${task.title}"`,
+  });
+
   return res
     .status(200)
     .json(new ApiResponse(200, task, "Task deleted successfully"));
@@ -181,6 +229,15 @@ const createSubTask = asyncHandler(async (req, res) => {
     title,
     task: taskId,
     createdBy: req.user._id,
+  });
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.SUBTASK_CREATED,
+    resourceType: ActivityResourceEnum.SUBTASK,
+    resourceId: subtask._id,
+    summary: `Added subtask "${subtask.title}" to task "${task.title}"`,
   });
 
   return res
@@ -202,7 +259,7 @@ const updateSubTask = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Subtask not found");
   }
 
-  const task = await Task.exists({
+  const task = await Task.findOne({
     _id: existingSubtask.task,
     project: projectId,
   });
@@ -220,6 +277,21 @@ const updateSubTask = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Subtask not found");
   }
 
+  const summary =
+    isCompleted !== undefined
+      ? `${subtask.isCompleted ? "Completed" : "Reopened"} subtask "${subtask.title}"`
+      : `Updated subtask "${subtask.title}"`;
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.SUBTASK_STATUS_CHANGED,
+    resourceType: ActivityResourceEnum.SUBTASK,
+    resourceId: subtask._id,
+    summary,
+    metadata: { isCompleted: subtask.isCompleted },
+  });
+
   return res
     .status(200)
     .json(new ApiResponse(200, subtask, "Subtask updated successfully"));
@@ -229,7 +301,7 @@ const deleteSubTask = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   const { subTaskId } = req.params;
 
-  const existingSubtask = await Subtask.findById(subTaskId).select("task");
+  const existingSubtask = await Subtask.findById(subTaskId).select("task title");
   if (!existingSubtask) {
     throw new ApiError(404, "Subtask not found");
   }
@@ -246,6 +318,15 @@ const deleteSubTask = asyncHandler(async (req, res) => {
   if (!subtask) {
     throw new ApiError(404, "Subtask not found");
   }
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.SUBTASK_DELETED,
+    resourceType: ActivityResourceEnum.SUBTASK,
+    resourceId: subtask._id,
+    summary: `Deleted subtask "${subtask.title}"`,
+  });
 
   return res
     .status(200)

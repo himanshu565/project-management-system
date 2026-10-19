@@ -2,6 +2,8 @@ import { ProjectNote } from "../models/note.models.js";
 import { ApiResponse } from "../utils/Api-Response.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
+import { recordActivity } from "../utils/activity-logger.js";
+import { ActivityActionEnum, ActivityResourceEnum } from "../utils/constants.js";
 
 const getNotes = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
@@ -46,6 +48,16 @@ const createNote = asyncHandler(async (req, res) => {
     createdBy: req.user._id,
   });
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.NOTE_CREATED,
+    resourceType: ActivityResourceEnum.NOTE,
+    resourceId: note._id,
+    summary: `Created note "${note.title || "Untitled"}"`,
+    metadata: { category: note.category },
+  });
+
   return res
     .status(201)
     .json(new ApiResponse(201, note, "Note created successfully"));
@@ -68,6 +80,16 @@ const updateNote = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Note not found");
   }
 
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.NOTE_UPDATED,
+    resourceType: ActivityResourceEnum.NOTE,
+    resourceId: note._id,
+    summary: `Updated note "${note.title || "Untitled"}"`,
+    metadata: { category: note.category },
+  });
+
   return res
     .status(200)
     .json(new ApiResponse(200, note, "Note updated successfully"));
@@ -81,6 +103,15 @@ const deleteNote = asyncHandler(async (req, res) => {
   if (!note) {
     throw new ApiError(404, "Note not found");
   }
+
+  await recordActivity({
+    project: projectId,
+    actor: req.user._id,
+    actionType: ActivityActionEnum.NOTE_DELETED,
+    resourceType: ActivityResourceEnum.NOTE,
+    resourceId: note._id,
+    summary: `Deleted note "${note.title || "Untitled"}"`,
+  });
 
   return res
     .status(200)

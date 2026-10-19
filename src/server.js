@@ -1,6 +1,9 @@
 import "dotenv/config";
 import app from "./app.js";
 import connectDB from "./db/index.js";
+import { assertRequiredEnvironment } from "./utils/env-validator.js";
+
+assertRequiredEnvironment();
 
 const port = process.env.PORT || 8000;
 

@@ -262,24 +262,50 @@ When adding or changing a feature:
    resources, invalid input, and insufficient permissions.
 7. Remove disposable test records after local verification.
 
-## Verification status
+## Testing and Quality Verification
 
-The implementation notes record successful local checks for:
+Automated unit and integration tests are executed using Node's built-in test runner (`node --test`). Test suites run completely in-memory with zero external service dependencies or test database setup required:
 
-- authentication and token-cookie flows;
-- project and member management;
-- task, subtask, and note CRUD;
-- search and status filtering;
-- cross-project protection;
-- invalid ID and missing-resource handling;
-- syntax checks, editor diagnostics, and `git diff --check`.
+```bash
+# Run all automated test suites (78 tests across 12 suites)
+npm test
+```
 
-There is currently no automated test script in `package.json`. New behavior
-should be covered with tests as the project grows.
+Test coverage includes:
+- Startup environment variable assertions and secret redaction (`test/security.test.js`)
+- Request validation, malformed ObjectIds, `400`/`401`/`403`/`404` status codes
+- Project CRUD, membership role matrix (`admin`, `project_admin`, `member`)
+- Child resource isolation (tasks, subtasks, notes cannot be accessed across project boundaries)
+- Ephemeral file upload limits and MIME validation (1 MB limit, images/PDFs only)
+- Authentication cookie persistence and token rotation boundaries
 
-## Related documentation
+### Local Database Seeding (Development Only)
 
-- [`PRD.md`](PRD.md) — product requirements, endpoint expectations, and role
-  matrix
-- [`PRojectnotes.md`](PRojectnotes.md) — detailed code-level notes and the
-  latest manual verification record
+To populate a local development database with deterministic demo users, projects, tasks, and notes:
+
+```bash
+npm run seed:dev
+```
+
+> [!WARNING]
+> The seed script is strictly blocked and fails immediately if `NODE_ENV=production` or if the database connection string targets a production cluster.
+
+### Continuous Integration
+
+A GitHub Actions workflow is defined in `.github/workflows/ci.yml`. On every push and pull request to `main`, it runs:
+1. JavaScript syntax validation across server and router modules.
+2. The full automated test suite (`npm test`).
+
+## File Uploads & Ephemeral Storage Disclaimer
+
+Uploaded task attachments are stored locally on disk under `public/images/`.
+
+> [!NOTE]
+> Local disk storage is ephemeral on containerized hosts (Render, Heroku Dynos, Vercel Serverless). When deployed to multi-instance cloud providers, an external object storage service (such as AWS S3, Cloudinary, or Google Cloud Storage) should be used.
+
+## Related Documentation
+
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — Comprehensive API contract, response/error envelopes, role matrix, and endpoint catalog.
+- [`PRD.md`](PRD.md) — Product requirements and specifications.
+- [`PRojectnotes.md`](PRojectnotes.md) — Architectural notes and engineering log.
+- [`PROJECTCAMP_IMPLEMENTATION_ROADMAP.md`](PROJECTCAMP_IMPLEMENTATION_ROADMAP.md) — Multi-phase project delivery roadmap.

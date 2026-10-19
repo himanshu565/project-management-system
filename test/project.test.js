@@ -182,4 +182,18 @@ describe("Project Routes Authorization Boundaries", () => {
     );
     assert.strictEqual(res.status, 401);
   });
+
+  it("GET /api/v1/projects/:projectId/activities requires authentication", async () => {
+    const res = await fetch(
+      `${baseUrl}/api/v1/projects/507f1f77bcf86cd799439011/activities`
+    );
+    assert.strictEqual(res.status, 401);
+  });
+
+  it("GET /api/v1/projects/:projectId/health-summary requires authentication", async () => {
+    const res = await fetch(
+      `${baseUrl}/api/v1/projects/507f1f77bcf86cd799439011/health-summary`
+    );
+    assert.strictEqual(res.status, 401);
+  });
 });

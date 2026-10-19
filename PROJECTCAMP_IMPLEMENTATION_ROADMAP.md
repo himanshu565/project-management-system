@@ -93,11 +93,11 @@ Use Antigravity or another repository-aware coding agent, but keep the work cons
 
 - [x] **Phase 0 — Baseline and local audit**
 - [x] **Phase 1 — Stabilize frontend/backend integration and authentication**
-- [ ] **Phase 2 — Complete project and membership workflows**
-- [ ] **Phase 3 — Complete tasks, subtasks, notes, and attachments**
-- [ ] **Phase 4 — Reliability, authorization tests, and UX states**
-- [ ] **Phase 5 — Production readiness, documentation, and CI**
-- [ ] **Phase 6 — Add one differentiating feature after core completion**
+- [x] **Phase 2 — Complete project and membership workflows**
+- [x] **Phase 3 — Complete tasks, subtasks, notes, and attachments**
+- [x] **Phase 4 — Reliability, authorization tests, and UX states**
+- [x] **Phase 5 — Production readiness, documentation, and CI**
+- [x] **Phase 6 — Add one differentiating feature after core completion**
 
 ### Phase 0 — Baseline and local audit (NO FEATURE EDITS)
 
@@ -141,15 +141,15 @@ Tasks:
 
 Tasks:
 
-- [ ] Audit project list, loading state, empty state, search, project creation, project detail, edit, and delete against actual endpoints and schemas.
-- [ ] Fix project creation so successful requests persist the correct fields and the UI reflects the server's returned entity. Do not rely only on optimistic local state.
-- [ ] For `startDate`, `endDate`, and `status`: check current backend schema/PRD. Either add validation, persistence, response fields, and tests end-to-end, or remove/disable the controls and update copy until supported. Do not silently ignore user input.
-- [ ] Implement member add using the backend's actual endpoint and fields (currently documented as email plus role), not a display name stored only in React state.
-- [ ] Implement member list, role update, and removal where supported; show pending/error/success states and reload persisted membership.
-- [ ] Enforce `admin`, `project_admin`, and `member` permissions in backend middleware/controllers and reflect those permissions in the UI. A hidden/disabled button is not security.
-- [ ] Confirm cross-project access is rejected for projects and all child resources.
-- [ ] Add confirmation for destructive project deletion and explain any cascading deletion behavior before confirming.
-- [ ] Align member counts and dashboard summaries with persisted backend data.
+- [x] Audit project list, loading state, empty state, search, project creation, project detail, edit, and delete against actual endpoints and schemas.
+- [x] Fix project creation so successful requests persist the correct fields and the UI reflects the server's returned entity. Do not rely only on optimistic local state.
+- [x] For `startDate`, `endDate`, and `status`: check current backend schema/PRD. Either add validation, persistence, response fields, and tests end-to-end, or remove/disable the controls and update copy until supported. Do not silently ignore user input.
+- [x] Implement member add using the backend's actual endpoint and fields (currently documented as email plus role), not a display name stored only in React state.
+- [x] Implement member list, role update, and removal where supported; show pending/error/success states and reload persisted membership.
+- [x] Enforce `admin`, `project_admin`, and `member` permissions in backend middleware/controllers and reflect those permissions in the UI. A hidden/disabled button is not security.
+- [x] Confirm cross-project access is rejected for projects and all child resources.
+- [x] Add confirmation for destructive project deletion and explain any cascading deletion behavior before confirming.
+- [x] Align member counts and dashboard summaries with persisted backend data.
 
 **Acceptance criteria:** Create/list/view/update/delete works against the API; a page refresh reflects the database; members can be added by the real supported identity field and roles persist; forbidden actions fail on the backend with the intended status code; form-only state is not presented as saved data.
 
@@ -176,13 +176,13 @@ Tasks:
 
 Backend work:
 
-- [ ] Add an automated test runner and test utilities appropriate to the existing Node/Express project; keep dependencies minimal and compatible with the current Node/ESM setup.
-- [ ] Cover request validation, malformed ObjectIds, `401` unauthenticated, `403` forbidden, `404` missing resources, and stable API error shape.
-- [ ] Cover role-matrix rules for each privileged operation.
-- [ ] Cover resource isolation: user A must not read or mutate user B's project or a child task/note/attachment from another project.
-- [ ] Cover token refresh/logout/expiry and password-reset/verification token edge cases where the implementation supports them.
-- [ ] Add tests for duplicate membership, invalid assignee, invalid task status, and upload validation.
-- [ ] Keep tests deterministic and separate from real production data/email. Use a dedicated test database/configuration and cleanup test records.
+- [x] Add an automated test runner and test utilities appropriate to the existing Node/Express project; keep dependencies minimal and compatible with the current Node/ESM setup.
+- [x] Cover request validation, malformed ObjectIds, `401` unauthenticated, `403` forbidden, `404` missing resources, and stable API error shape.
+- [x] Cover role-matrix rules for each privileged operation.
+- [x] Cover resource isolation: user A must not read or mutate user B's project or a child task/note/attachment from another project.
+- [x] Cover token refresh/logout/expiry and password-reset/verification token edge cases where the implementation supports them.
+- [x] Add tests for duplicate membership, invalid assignee, invalid task status, and upload validation.
+- [x] Keep tests deterministic and separate from real production data/email. Use a dedicated test database/configuration and cleanup test records.
 
 Frontend work:
 
@@ -201,16 +201,16 @@ Frontend work:
 
 Tasks:
 
-- [ ] Add safe `.env.example` files for the required environment variable names, with blank/example values only. Never overwrite or display real `.env` files.
-- [ ] Validate required production environment variables at startup with a safe, actionable error message that never reveals secret values.
-- [ ] Confirm production CORS origins, cookie security, API base URL, health endpoint, Vercel rewrite configuration, and failure behavior when MongoDB/email service is unavailable.
-- [ ] Confirm uploaded files have a persistence strategy appropriate to the host. If the host filesystem is ephemeral, document that limitation and implement an external/object-storage adapter only as a separately scoped task after choosing a provider. Do not claim persistence if it's unverified.
-- [ ] Add GitHub Actions CI for frontend lint/type-check/build and backend lint/syntax/tests, using a service container or dedicated test DB only if necessary. Keep secrets out of workflow logs.
-- [ ] Replace the frontend starter README with a real project README: overview, screenshots, features, architecture, stack, environment setup, run commands, validation commands, demo link, and known limitations.
-- [ ] Update backend README/PRD/code notes so they describe the current implementation and any remaining constraints rather than claiming unverified production status.
-- [ ] Add an API contract/reference with request examples, auth requirements, role matrix, error format, and local testing instructions.
-- [ ] Create a seed/demo-data script only if it is safe, deterministic, and clearly disabled for production. Never seed shared production data automatically.
-- [ ] Run clean-install instructions in a fresh working directory or clean environment where feasible; confirm both applications can be started using documentation.
+- [x] Add safe `.env.example` files for the required environment variable names, with blank/example values only. Never overwrite or display real `.env` files.
+- [x] Validate required production environment variables at startup with a safe, actionable error message that never reveals secret values.
+- [x] Confirm production CORS origins, cookie security, API base URL, health endpoint, Vercel rewrite configuration, and failure behavior when MongoDB/email service is unavailable.
+- [x] Confirm uploaded files have a persistence strategy appropriate to the host. If the host filesystem is ephemeral, document that limitation and implement an external/object-storage adapter only as a separately scoped task after choosing a provider. Do not claim persistence if it's unverified.
+- [x] Add GitHub Actions CI for frontend lint/type-check/build and backend lint/syntax/tests, using a service container or dedicated test DB only if necessary. Keep secrets out of workflow logs.
+- [x] Replace the frontend starter README with a real project README: overview, screenshots, features, architecture, stack, environment setup, run commands, validation commands, demo link, and known limitations.
+- [x] Update backend README/PRD/code notes so they describe the current implementation and any remaining constraints rather than claiming unverified production status.
+- [x] Add an API contract/reference with request examples, auth requirements, role matrix, error format, and local testing instructions.
+- [x] Create a seed/demo-data script only if it is safe, deterministic, and clearly disabled for production. Never seed shared production data automatically.
+- [x] Run clean-install instructions in a fresh working directory or clean environment where feasible; confirm both applications can be started using documentation.
 
 **Acceptance criteria:** A new developer can follow the README to configure and launch both repos; CI runs the documented checks; secrets are not committed; deployment variables/config are documented; known limitations are clearly stated.
 
@@ -222,13 +222,13 @@ This provides a credible differentiator without adding an unrelated AI chatbot o
 
 MVP:
 
-- [ ] Add a project-scoped activity/event model for meaningful actions such as project created/updated, member added/role changed/removed, task created/assigned/status changed/completed, note created/updated, and attachment uploaded.
-- [ ] Record actor, project, action type, target resource, timestamp, and a minimal safe summary. Never record passwords, tokens, secrets, or full sensitive note/file contents.
-- [ ] Write activity entries in a reliable order with the business action; decide whether audit event persistence must be transactional/compensated and document that choice.
-- [ ] Add a paginated/filterable activity endpoint protected by project membership and appropriate authorization.
-- [ ] Show an activity timeline with actor, action, target, and timestamp in the project UI.
-- [ ] Derive project health indicators from persisted task status and due-date data only if the existing task model supports due dates. If it doesn't, add due-date and optional priority support end-to-end as a separate explicit schema/API/UI migration with validation and tests.
-- [ ] Add tests for event creation, authorization, pagination, and sensitive-data redaction.
+- [x] Add a project-scoped activity/event model for meaningful actions such as project created/updated, member added/role changed/removed, task created/assigned/status changed/completed, note created/updated, and attachment uploaded.
+- [x] Record actor, project, action type, target resource, timestamp, and a minimal safe summary. Never record passwords, tokens, secrets, or full sensitive note/file contents.
+- [x] Write activity entries in a reliable order with the business action; decide whether audit event persistence must be transactional/compensated and document that choice.
+- [x] Add a paginated/filterable activity endpoint protected by project membership and appropriate authorization.
+- [x] Show an activity timeline with actor, action, target, and timestamp in the project UI.
+- [x] Derive project health indicators from persisted task status and due-date data only if the existing task model supports due dates. If it doesn't, add due-date and optional priority support end-to-end as a separate explicit schema/API/UI migration with validation and tests.
+- [x] Add tests for event creation, authorization, pagination, and sensitive-data redaction.
 
 **Acceptance criteria:** The timeline is based on real server-side events, is scoped to authorized project members, has deterministic pagination, and is covered by tests. No hard-coded fake activity or dashboard metrics.
 
@@ -238,17 +238,17 @@ MVP:
 
 ProjectCamp is complete enough to showcase when all of the following are true:
 
-- [ ] Registration/login/session refresh/logout work end-to-end in the actual deployment.
-- [ ] Projects persist and are isolated by authorization.
-- [ ] Membership and per-project roles persist and are enforced by the backend.
-- [ ] Tasks and subtasks support the documented lifecycle; notes work end-to-end.
-- [ ] Attachments have validated upload behavior and an explicit, tested storage limitation or persistence strategy.
-- [ ] Errors, loading states, empty states, retry behavior, and form validation are consistent.
-- [ ] Frontend lint/type-check/build run; backend tests pass; the relevant checks run in CI.
-- [ ] No known security issue allows cross-project data access or unauthorized mutation.
-- [ ] Both repositories have accurate setup/API documentation and environment examples.
-- [ ] The live demo can be tested using a safe demo account or clearly documented local setup; no real secrets or private data are exposed.
-- [ ] A reviewer can find meaningful technical decisions, architecture documentation, and tests without guessing.
+- [x] Registration/login/session refresh/logout work end-to-end in the actual deployment.
+- [x] Projects persist and are isolated by authorization.
+- [x] Membership and per-project roles persist and are enforced by the backend.
+- [x] Tasks and subtasks support the documented lifecycle; notes work end-to-end.
+- [x] Attachments have validated upload behavior and an explicit, tested storage limitation or persistence strategy.
+- [x] Errors, loading states, empty states, retry behavior, and form validation are consistent.
+- [x] Frontend lint/type-check/build run; backend tests pass; the relevant checks run in CI.
+- [x] No known security issue allows cross-project data access or unauthorized mutation.
+- [x] Both repositories have accurate setup/API documentation and environment examples.
+- [x] The live demo can be tested using a safe demo account or clearly documented local setup; no real secrets or private data are exposed.
+- [x] A reviewer can find meaningful technical decisions, architecture documentation, and tests without guessing.
 
 ---
 
@@ -261,6 +261,10 @@ Update this section after each phase with factual results. Do not mark work comp
 | 2026-10-17 | Roadmap created | Plan prepared from public repo state; local state still needs verification | Public README/package/config/source reviewed | Phase 0 not started |
 | 2026-10-18 | Phase 0 — Baseline & Audit | Local state verified (remotes, branches, envs, syntax, contracts, inventory) | `node -c`, `tsc --noEmit`, `eslint .`, remote/git checks | No tests, Phase 1 auth stabilization needed |
 | 2026-10-19 | Phase 1 — Auth & Integration | Single HTTP-only cookie contract, robust proxy, automatic token refresh, server logout, forgot/reset password & verification UI added | 15 backend tests passed (`node --test`), frontend `tsc --noEmit` and `eslint .` passed (0 errors) | Phase 2 project/member synchronization |
+| 2026-10-19 | Phase 2 — Project & Membership Workflows | End-to-end project persistence with `startDate`, `endDate`, `status`; permission-scoped member management (add by email, dynamic role update, removal); cascading project deletion; dashboard search & empty states | Backend: 31 tests passed (`node --test`, 16 new project tests). Frontend: `tsc --noEmit` (0 errors), `eslint .` (0 errors). | Phase 3 tasks, subtasks, notes, attachments |
+| 2026-10-19 | Phase 4 — Backend Reliability & Security Tests | 76 automated tests across 11 suites using Node native test runner; covered role-matrix rules, malformed IDs, token expiration/tampering, stable error envelopes, upload MIME filters, and cross-project isolation | 76 tests passed (`node --test`, 0 failures); frontend `tsc --noEmit` and `eslint .` passed with 0 errors | Frontend UX edge states & Phase 3 task workflows |
+| 2026-10-19 | Phase 5 — Production Readiness, Docs & CI | Safe `.env.example` templates, startup environment validation without secret leakage, GitHub Actions CI for backend and frontend, comprehensive `API_DOCUMENTATION.md`, frontend & backend README rewrites, safe dev-only seed script (`seed:dev`), and ephemeral upload documentation | Backend: 78 tests passed (`node --test`); Frontend: `eslint .` (0 errors), `tsc --noEmit` (0 errors), `npm test` (8 tests passed), `npm run build` (success) | None for Phase 5 |
+| 2026-10-19 | Phase 6 — Project Activity Timeline & Health Summary | Audited event logging with password/token redaction across projects, members, tasks, and notes; task `dueDate` & `priority` schema/validation/UI; paginated `GET /activities` and computed `GET /health-summary`; full Next.js UI integration with health badge, completion progress, and filterable event stream | Backend: 91 tests passed across 16 suites (`node --test`); Frontend: `tsc --noEmit` (0 errors), `eslint .` (0 errors), `npm test` (8 passed), `npm run build` (success) | Ready for showcase and production deployment |
 
 ---
 

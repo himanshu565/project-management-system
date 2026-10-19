@@ -1,21 +1,36 @@
 import multer from "multer";
+import { ApiError } from "../utils/api-error.js";
+
+export const allowedMimeTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "text/plain",
+];
+
+export const fileFilter = (req, file, cb) => {
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(
+      new ApiError(
+        400,
+        `Unsupported file type: ${file.mimetype}. Allowed types: JPEG, PNG, WEBP, GIF, PDF, TXT`
+      ),
+      false
+    );
+  }
+};
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, `./public/images`);
   },
-  /** Specifies the folder where uploaded files should be saved.
-
-cb (callback) takes two arguments:
-
-null (no error)
-
-'./public/images' (path to store files)
-
-*/
-
   filename: function (req, file, cb) {
-    cb(null, `${Date.now()}-${file.originalname}`); //Controls the file name of the saved file, file.originalname is the original file name (like "photo.png") So, if you upload photo.png, it might be saved as: 1690481234567-photo.png
+    const sanitized = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+    cb(null, `${Date.now()}-${sanitized}`);
   },
 });
 
@@ -24,6 +39,7 @@ export const upload = multer({
   limits: {
     fileSize: 1 * 1000 * 1000,
   },
+  fileFilter,
 });
 /**
  * Multer — quick notes for future revision:

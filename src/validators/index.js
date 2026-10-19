@@ -3,6 +3,7 @@ import {
   AvailableUserRole,
   AvailableTaskStatus,
   AvailableProjectStatus,
+  AvailableTaskPriority,
 } from "../utils/constants.js";
 
 const userRegisterValidator = () => {
@@ -126,6 +127,14 @@ const createTaskValidator = () => {
       .optional()
       .isIn(AvailableTaskStatus)
       .withMessage("Status is invalid"),
+    body("dueDate")
+      .optional({ values: "falsy" })
+      .isISO8601()
+      .withMessage("Due date must be a valid ISO 8601 date"),
+    body("priority")
+      .optional({ values: "falsy" })
+      .isIn(AvailableTaskPriority)
+      .withMessage("Priority is invalid"),
     body("assignedTo").optional().isMongoId().withMessage("assignedTo must be a valid user id"),
   ];
 };
@@ -139,6 +148,14 @@ const updateTaskValidator = () => {
       .optional()
       .isIn(AvailableTaskStatus)
       .withMessage("Status is invalid"),
+    body("dueDate")
+      .optional({ values: "falsy" })
+      .isISO8601()
+      .withMessage("Due date must be a valid ISO 8601 date"),
+    body("priority")
+      .optional({ values: "falsy" })
+      .isIn(AvailableTaskPriority)
+      .withMessage("Priority is invalid"),
   ];
 };
 
